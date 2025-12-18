@@ -2,83 +2,216 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Neon Jackpot 67</title>
-    
-    <link rel="manifest" href="data:application/manifest+json,{'name':'Neon Jackpot 67','short_name':'Neon67','start_url':'.','display':'standalone','background_color':'#050505','theme_color':'#ff00ff'}">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neon Jackpot 67 - Ultimate BGM Edition</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
-        :root { --primary: #ff00ff; --secondary: #00ffff; --bg: #050505; }
-        body { 
-            margin: 0; overflow: hidden; background-color: var(--bg); font-family: 'Orbitron', sans-serif; 
-            color: #fff; height: 100vh; display: flex; justify-content: center; align-items: center;
-            padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
-            touch-action: manipulation;
+
+        :root {
+            --primary: #ff00ff;
+            --secondary: #00ffff;
+            --bg: #050505;
         }
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: var(--bg);
+            font-family: 'Orbitron', sans-serif;
+            color: #fff;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
         #bg-canvas { position: fixed; top: 0; left: 0; z-index: -1; }
-        .neon-box { background: rgba(10, 10, 10, 0.92); border: 2px solid var(--primary); box-shadow: 0 0 15px var(--primary); border-radius: 20px; backdrop-filter: blur(10px); }
+
+        .neon-box {
+            background: rgba(10, 10, 10, 0.92);
+            border: 2px solid var(--primary);
+            box-shadow: 0 0 15px var(--primary);
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+        }
+
         .neon-text-blue { color: var(--secondary); text-shadow: 0 0 10px var(--secondary); }
         .neon-text-pink { color: var(--primary); text-shadow: 0 0 10px var(--primary); }
-        .btn-action { transition: all 0.2s ease; text-transform: uppercase; background: var(--primary); box-shadow: 0 0 10px var(--primary); color: #000; font-weight: 900; }
+
+        .btn-action {
+            transition: all 0.2s ease;
+            text-transform: uppercase;
+            background: var(--primary);
+            box-shadow: 0 0 10px var(--primary);
+            color: #000;
+            font-weight: 900;
+        }
+
         .btn-action:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 0 20px var(--primary); }
         .btn-action:disabled { background: #333; box-shadow: none; opacity: 0.5; cursor: not-allowed; color: #777; }
+
         .tab-btn { border-bottom: 2px solid transparent; transition: 0.3s; opacity: 0.6; }
         .tab-btn.active { border-color: var(--primary); color: var(--primary); opacity: 1; }
-        .click-orb { width: 100px; height: 100px; border-radius: 50%; border: 4px solid var(--secondary); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.1s; box-shadow: 0 0 20px rgba(0,255,255,0.2); }
+
+        .click-orb {
+            width: 100px; height: 100px; border-radius: 50%;
+            border: 4px solid var(--secondary);
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; transition: 0.1s;
+            box-shadow: 0 0 20px rgba(0,255,255,0.2);
+        }
         .click-orb:active { transform: scale(0.9); background: rgba(0,255,255,0.1); }
+
         .hidden { display: none !important; }
-        @keyframes pulse { 0%, 100% { transform: scale(1); filter: brightness(1); } 50% { transform: scale(1.05); filter: brightness(1.3); } }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); filter: brightness(1); }
+            50% { transform: scale(1.05); filter: brightness(1.3); }
+        }
         .jackpot-anim { animation: pulse 0.3s infinite; color: #ffd700 !important; text-shadow: 0 0 20px #ffd700 !important; }
-        .shop-item { background: rgba(255,255,255,0.05); border-radius: 10px; padding: 10px; margin-bottom: 10px; border: 1px solid rgba(255,255,255,0.1); }
-        #win-screen { position: fixed; inset: 0; background: #000; z-index: 100; display: flex; flex-direction: column; justify-content: center; align-items: center; }
-        .mega-67 { font-size: 8rem; font-weight: 900; color: var(--primary); text-shadow: 0 0 50px var(--primary); animation: pulse 0.5s infinite; }
+
+        .shop-item {
+            background: rgba(255,255,255,0.05);
+            border-radius: 10px;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        #win-screen {
+            position: fixed; inset: 0; background: #000; z-index: 100;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+        }
+
+        .mega-67 {
+            font-size: 10rem; font-weight: 900;
+            color: var(--primary); text-shadow: 0 0 50px var(--primary);
+            animation: pulse 0.5s infinite;
+        }
+
         .rave-bg { animation: rave 0.1s infinite !important; }
-        @keyframes rave { 0% { background: #ff0000; } 20% { background: #00ff00; } 40% { background: #0000ff; } 60% { background: #ffff00; } 80% { background: #ff00ff; } 100% { background: #00ffff; } }
+        @keyframes rave {
+            0% { background: #ff0000; } 20% { background: #00ff00; }
+            40% { background: #0000ff; } 60% { background: #ffff00; }
+            80% { background: #ff00ff; } 100% { background: #00ffff; }
+        }
+        
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 10px; }
+
+        /* Hidden BGM Container */
         #yt-player { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
     </style>
 </head>
 <body>
-    <audio id="local-bgm" src="bgm.mp3" loop preload="auto"></audio>
+    <audio id="local-bgm" loop preload="auto">
+    <source src="bgm.mp3" type="audio/mpeg">
+</audio>
     <canvas id="bg-canvas"></canvas>
-    <div id="yt-player"></div>
-    <div id="win-screen" class="hidden"><h1 class="text-3xl font-black mb-4 uppercase">Victory Achieved</h1><p id="time-taken" class="text-xl mb-10 opacity-70">Time: 00:00</p><div class="mega-67">67</div><button onclick="location.reload()" class="mt-10 btn-action px-6 py-2 rounded">Restart</button></div>
-    <div id="main-ui" class="neon-box p-6 w-full max-w-sm mx-4 h-[640px] flex flex-col relative">
-        <button id="bgm-toggle" class="absolute top-2 right-4 text-[9px] opacity-40 border border-white/20 px-2 py-0.5 rounded uppercase font-bold">🔊 BGM: ON</button>
-        <div class="flex justify-between items-end mb-4 border-b border-white/10 pb-2"><div><p class="text-[9px] uppercase opacity-60">Balance</p><p id="balance" class="text-2xl font-black neon-text-blue">$0</p></div><div class="text-right"><p id="jackpot-count" class="text-xl font-bold text-yellow-400">🏆 0</p><p class="text-[9px] uppercase opacity-50">Jackpots</p></div></div>
-        <div class="mb-4 text-center"><p class="text-[8px] uppercase opacity-40 mb-1">Current Title</p><div id="current-title-box" class="text-[9px] font-bold py-1 px-3 border border-white/20 rounded inline-block bg-white/5">NO TITLE</div></div>
-        <div class="flex gap-2 mb-4"><button onclick="showTab('earn')" id="t-earn" class="tab-btn active flex-1 py-1 text-xs font-bold uppercase">Earn</button><button onclick="showTab('play')" id="t-play" class="tab-btn flex-1 py-1 text-xs font-bold uppercase">Play</button><button onclick="showTab('shop')" id="t-shop" class="tab-btn flex-1 py-1 text-xs font-bold uppercase">Shop</button></div>
-        <div class="flex-grow overflow-y-auto pr-1">
-            <div id="view-earn" class="text-center py-6"><div id="clicker" class="click-orb mx-auto mb-6"><span class="text-4xl font-black neon-text-blue">$</span></div><p class="text-sm">Power: <span id="click-power" class="neon-text-blue">$1</span> / Click</p></div>
-            <div id="view-play" class="hidden text-center"><div class="flex justify-center items-center gap-3 mb-2"><span class="text-[9px] uppercase">Bet:</span><input type="number" id="bet-input" value="10" class="bg-black border border-pink-500 rounded px-2 py-1 w-20 text-center outline-none neon-text-pink font-bold"><div id="triple-indicator" class="hidden text-[9px] bg-yellow-400 text-black px-1.5 py-0.5 rounded font-black">3X</div></div><div class="flex justify-center gap-2 mb-4"><button onclick="quickBet(0.5)" class="text-[8px] border border-white/20 px-2 py-1 rounded">1/2 BAL</button><button onclick="quickBet(1)" class="text-[8px] border border-white/20 px-2 py-1 rounded">MAX</button></div><div class="my-2"><div id="num-display" class="text-5xl font-black neon-text-pink h-16 flex items-center justify-center">00</div><div id="msg" class="h-5 text-[10px] font-bold mt-1 uppercase"></div></div><button id="roll-btn" class="btn-action w-full py-3 rounded-lg text-lg mb-4">ROLL</button></div>
+    <div id="yt-player"></div> <div id="win-screen" class="hidden">
+        <h1 class="text-4xl font-black mb-4 uppercase">Victory Achieved</h1>
+        <p id="time-taken" class="text-xl mb-10 opacity-70">Time: 00:00</p>
+        <div class="mega-67">67</div>
+        <button onclick="location.reload()" class="mt-10 btn-action px-6 py-2 rounded">Restart</button>
+    </div>
+
+    <div id="main-ui" class="neon-box p-6 w-full max-w-md mx-4 h-[680px] flex flex-col relative">
+        <button id="bgm-toggle" class="absolute top-2 right-4 text-[10px] opacity-50 hover:opacity-100 border border-white/20 px-2 py-0.5 rounded uppercase font-bold">🔊 BGM: ON</button>
+
+        <div class="flex justify-between items-end mb-4 border-b border-white/10 pb-2">
+            <div>
+                <p class="text-[10px] uppercase opacity-60">Balance</p>
+                <p id="balance" class="text-2xl font-black neon-text-blue">$0</p>
+            </div>
+            <div class="text-right">
+                <p id="jackpot-count" class="text-xl font-bold text-yellow-400">🏆 0</p>
+                <p class="text-[9px] uppercase opacity-50">Jackpots</p>
+            </div>
+        </div>
+
+        <div class="mb-4 text-center">
+            <p class="text-[8px] uppercase opacity-40 mb-1">Current Title</p>
+            <div id="current-title-box" class="text-[10px] font-bold py-1 px-3 border border-white/20 rounded inline-block bg-white/5">
+                NO TITLE <span class="opacity-40 ml-2">(1.0x)</span>
+            </div>
+        </div>
+
+        <div class="flex gap-2 mb-4">
+            <button onclick="showTab('earn')" id="t-earn" class="tab-btn active flex-1 py-1 text-xs font-bold uppercase">Earn</button>
+            <button onclick="showTab('play')" id="t-play" class="tab-btn flex-1 py-1 text-xs font-bold uppercase">Play</button>
+            <button onclick="showTab('shop')" id="t-shop" class="tab-btn flex-1 py-1 text-xs font-bold uppercase">Shop</button>
+        </div>
+
+        <div class="flex-grow overflow-y-auto pr-2">
+            <div id="view-earn" class="text-center py-6">
+                <div id="clicker" class="click-orb mx-auto mb-6">
+                    <span id="click-symbol" class="text-4xl font-black neon-text-blue">$</span>
+                </div>
+                <p class="text-sm">Power: <span id="click-power" class="neon-text-blue">$1</span> / Click</p>
+            </div>
+
+            <div id="view-play" class="hidden text-center">
+                <div class="flex justify-center items-center gap-3 mb-2">
+                    <span class="text-[10px] uppercase">Bet:</span>
+                    <input type="number" id="bet-input" value="10" class="bg-black border border-pink-500 rounded px-2 py-1 w-24 text-center outline-none neon-text-pink font-bold">
+                    <div id="triple-indicator" class="hidden text-[10px] bg-yellow-400 text-black px-2 py-0.5 rounded font-black">3X</div>
+                </div>
+                
+                <div class="flex justify-center gap-2 mb-4">
+                    <button onclick="quickBet(0.5)" class="text-[9px] border border-white/20 px-2 py-1 rounded hover:bg-white/10">1/2 BAL</button>
+                    <button onclick="quickBet(1)" class="text-[9px] border border-white/20 px-2 py-1 rounded hover:bg-white/10">MAX</button>
+                </div>
+
+                <div class="my-2">
+                    <div id="num-display" class="text-6xl font-black neon-text-pink h-16 flex items-center justify-center tracking-tighter">00</div>
+                    <div id="msg" class="h-5 text-[12px] font-bold mt-1 uppercase"></div>
+                </div>
+
+                <button id="roll-btn" class="btn-action w-full py-4 rounded-lg text-xl mb-4">ROLL</button>
+                
+                <div class="grid grid-cols-2 gap-1 text-[9px] text-left">
+                    <div class="p-2 border border-white/5 rounded">67: <span class="text-yellow-400 font-bold">x67</span></div>
+                    <div class="p-2 border border-white/5 rounded">6,7,60,70: <span class="neon-text-blue font-bold">x2</span></div>
+                    <div class="p-2 border border-white/5 rounded">Has 6 or 7: <span class="neon-text-pink font-bold">x1.2</span></div>
+                    <div class="p-2 border border-white/5 rounded">69, 0, 99: <span class="text-red-500 font-bold">x-10</span></div>
+                </div>
+            </div>
+
             <div id="view-shop" class="hidden">
-                <p class="text-[9px] mb-2 opacity-50 uppercase font-bold">Gacha</p><div class="shop-item flex justify-between items-center border-yellow-500/50 border"><div><p class="font-bold text-xs text-yellow-400">Title Capsule</p></div><button onclick="rollGacha()" class="btn-action bg-yellow-500 px-3 py-1 rounded text-xs !text-black">$500</button></div>
-                <p class="text-[9px] my-2 opacity-50 uppercase font-bold">Upgrades</p><div class="shop-item flex justify-between items-center"><div><p class="font-bold text-xs text-white">Turbo Core</p></div><button onclick="buyUpgrade('delay')" id="buy-delay" class="btn-action px-3 py-1 rounded text-xs">$1000</button></div>
-                <div class="shop-item flex justify-between items-center"><div><p class="font-bold text-xs text-white">Triple Sync</p></div><button onclick="buyUpgrade('triple')" id="buy-triple" class="btn-action px-3 py-1 rounded text-xs">$88888</button></div>
-                <button onclick="winGame()" class="btn-action bg-yellow-500 w-full py-2 rounded text-xs !text-black mt-4">WIN GAME ($676,767)</button>
+                <p class="text-[10px] mb-2 opacity-50 uppercase tracking-widest font-bold">The Gacha</p>
+                <div class="shop-item flex justify-between items-center border-yellow-500/50 border">
+                    <div><p class="font-bold text-xs text-yellow-400">Title Capsule</p><p class="text-[8px] opacity-60">Roll for a Bet Multiplier</p></div>
+                    <button onclick="rollGacha()" class="btn-action bg-yellow-500 px-3 py-1 rounded text-xs !text-black">$500</button>
+                </div>
+
+                <p class="text-[10px] my-2 opacity-50 uppercase tracking-widest font-bold">Upgrades</p>
+                <div class="shop-item flex justify-between items-center">
+                    <div><p class="font-bold text-xs text-white">Turbo Core</p><p class="text-[8px] opacity-60">-0.1s Roll Speed</p></div>
+                    <button onclick="buyUpgrade('delay')" id="buy-delay" class="btn-action px-3 py-1 rounded text-xs">$1000</button>
+                </div>
+                <div class="shop-item flex justify-between items-center">
+                    <div><p class="font-bold text-xs text-white">Triple Sync</p><p class="text-[8px] opacity-60">Roll 3 Numbers</p></div>
+                    <button onclick="buyUpgrade('triple')" id="buy-triple" class="btn-action px-3 py-1 rounded text-xs">$88888</button>
+                </div>
+
+                <p class="text-[10px] my-4 opacity-50 uppercase tracking-widest font-bold">Skins ($1k)</p>
+                <div class="grid grid-cols-2 gap-2 mb-6">
+                    <button onclick="buySkin('Default', '#ff00ff', '#00ffff')" class="p-2 border border-white/10 rounded text-[9px]">PINK</button>
+                    <button onclick="buySkin('Toxic', '#39ff14', '#ffff00')" class="p-2 border border-white/10 rounded text-[9px]">TOXIC</button>
+                    <button onclick="buySkin('Gold', '#ffd700', '#ffffff')" class="p-2 border border-white/10 rounded text-[9px]">GOLD</button>
+                    <button onclick="buySkin('Electric', '#0077ff', '#ffffff')" class="p-2 border border-white/10 rounded text-[9px]">ELECTRIC</button>
+                </div>
+
+                <div class="p-4 border-2 border-yellow-500 rounded bg-yellow-500/10 text-center mb-4">
+                    <button onclick="winGame()" class="btn-action bg-yellow-500 w-full py-2 rounded text-xs !text-black">VICTORY ($676,767)</button>
+                </div>
             </div>
         </div>
     </div>
+
     <script>
-        let balance=0, jackpots=0, rollDelay=2.0, delayPrice=1000, hasTriple=false, isRolling=false, startTime=Date.now(), currentTitle={name:"NO TITLE", mult:1.0, color:"#6b7280"};
-        const TITLES=[{name:"Chopped",mult:0.9,chance:0.2,color:"#6b7280"},{name:"Gooner",mult:1.1,chance:0.4,color:"#9333ea"},{name:"Boovni Master",mult:1.3,chance:0.2,color:"#3b82f6"},{name:"CS enjoyer",mult:1.5,chance:0.15,color:"#10b981"},{name:"MGL Aluurchin",mult:2.0,chance:0.04,color:"#f97316"},{name:"Hohin Yapper",mult:3.0,chance:0.0099,color:"#ef4444"},{name:"67 Rizz God",mult:10.0,chance:0.0001,color:"#ffd700"}];
-        const audioCtx=new(window.AudioContext||window.webkitAudioContext)();
-        function playTone(f,t,d,v=0.1){const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type=t;o.frequency.setValueAtTime(f,audioCtx.currentTime);g.gain.setValueAtTime(v,audioCtx.currentTime);g.gain.exponentialRampToValueAtTime(0.0001,audioCtx.currentTime+d);o.connect(g);g.connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+d);}
-        function save(){localStorage.setItem('n67',JSON.stringify({balance,jackpots,rollDelay,delayPrice,hasTriple,currentTitle}));}
-        function load(){const s=localStorage.getItem('n67');if(s){const d=JSON.parse(s);Object.assign(window,d);updateUI();}}
-        function updateUI(){document.getElementById('balance').textContent=`$${Math.floor(balance)}`;document.getElementById('jackpot-count').textContent=`🏆 ${jackpots}`;document.getElementById('click-power').textContent=`$${1+(jackpots*2)}`;document.getElementById('buy-delay').textContent=`$${Math.floor(delayPrice)}`;const tb=document.getElementById('current-title-box');tb.innerHTML=`${currentTitle.name} (${currentTitle.mult}x)`;tb.style.color=currentTitle.color;if(hasTriple){document.getElementById('buy-triple').textContent="OWNED";document.getElementById('buy-triple').disabled=true;document.getElementById('triple-indicator').classList.remove('hidden');}save();}
-        function showTab(id){['earn','play','shop'].forEach(t=>{document.getElementById('view-'+t).classList.add('hidden');document.getElementById('t-'+t).classList.remove('active');});document.getElementById('view-'+id).classList.remove('hidden');document.getElementById('t-'+id).classList.add('active');}
-        function quickBet(p){document.getElementById('bet-input').value=Math.floor(balance*p);}
-        document.getElementById('clicker').onclick=()=>{balance+=(1+(jackpots*2));playTone(600,'square',0.05,0.05);updateUI();};
-        function rollGacha(){if(balance<500)return;balance-=500;let r=Math.random(),c=0;for(const t of TITLES){c+=t.chance;if(r<=c){currentTitle=t;break;}}updateUI();}
-        function buyUpgrade(t){if(t==='delay'&&balance>=delayPrice&&rollDelay>0.2){balance-=delayPrice;rollDelay-=0.1;delayPrice*=1.6;}else if(t==='triple'&&balance>=88888){balance-=88888;hasTriple=true;}updateUI();}
-        function winGame(){if(balance>=676767){document.getElementById('main-ui').classList.add('hidden');document.getElementById('win-screen').classList.remove('hidden');document.body.classList.add('rave-bg');}}
-        document.getElementById('roll-btn').onclick=async()=>{if(isRolling)return;const b=parseInt(document.getElementById('bet-input').value);if(isNaN(b)||b<=0||b>balance)return;isRolling=true;document.getElementById('roll-btn').disabled=true;let sh=setInterval(()=>{document.getElementById('num-display').textContent=Math.floor(Math.random()*100).toString().padStart(2,'0');playTone(200,'sine',0.05,0.02);},70);await new Promise(r=>setTimeout(r,rollDelay*1000));clearInterval(sh);const rs=hasTriple?[0,0,0].map(()=>Math.floor(Math.random()*100)):[Math.floor(Math.random()*100)];document.getElementById('num-display').textContent=rs.map(r=>r.toString().padStart(2,'0')).join("|");let ch=0;rs.forEach(res=>{let m=-0.5;if(res==67){m=67;jackpots++;playTone(1200,'square',0.5);}else if([6,7,60,70].includes(res))m=2;else if(res.toString().includes('6')||res.toString().includes('7'))m=1.2;ch+=(b*m*currentTitle.mult);});balance+=ch;if(balance<0)balance=0;updateUI();isRolling=false;document.getElementById('roll-btn').disabled=false;};
-        
-     // --- BGM LOGIC ---
+        // --- BGM LOGIC ---
 const bgm = document.getElementById('local-bgm');
 const bgmBtn = document.getElementById('bgm-toggle');
 let bgmInitialized = false;
@@ -108,12 +241,220 @@ bgmBtn.onclick = (e) => {
     e.stopPropagation(); // Prevents the 'first-click' listener from double-firing
     toggleBGM();
 };
-        
-        const canvas=document.getElementById('bg-canvas'),ctx=canvas.getContext('2d');let pts=[];
-        function init(){canvas.width=window.innerWidth;canvas.height=window.innerHeight;pts=Array.from({length:30},()=>({x:Math.random()*canvas.width,y:Math.random()*canvas.height,s:Math.random()*20+10,v:Math.random()*1+0.5}));}
-        function draw(){ctx.fillStyle='#050505';ctx.fillRect(0,0,canvas.width,canvas.height);pts.forEach(p=>{p.y-=p.v;if(p.y<-30)p.y=canvas.height+30;ctx.fillStyle="#ff00ff22";ctx.font=`${p.s}px Orbitron`;ctx.fillText('67',p.x,p.y);});requestAnimationFrame(draw);}
-        window.addEventListener('resize',init);init();draw();load();
-        if('serviceWorker' in navigator){navigator.serviceWorker.register('data:text/javascript,self.addEventListener("fetch", (e) => e.respondWith(fetch(e.request)));');}
+
+        // --- DATA & STATE ---
+        let balance = 0;
+        let jackpots = 0;
+        let rollDelay = 2.0;
+        let delayPrice = 1000;
+        let hasTriple = false;
+        let isRolling = false;
+        let startTime = Date.now();
+        let ownedSkins = ['Default'];
+        let currentTitle = { name: "NO TITLE", mult: 1.0, color: "#6b7280" };
+
+        const TITLES = [
+            { name: "Chopped", mult: 0.9, chance: 0.20, color: "#6b7280" },
+            { name: "Gooner", mult: 1.1, chance: 0.40, color: "#9333ea" },
+            { name: "Boovni Master", mult: 1.3, chance: 0.20, color: "#3b82f6" },
+            { name: "CS enjoyer", mult: 1.5, chance: 0.15, color: "#10b981" },
+            { name: "MGL Aluurchin Sigma King", mult: 2.0, chance: 0.04, color: "#f97316" },
+            { name: "Hohin Yap Yaper", mult: 3.0, chance: 0.0099, color: "#ef4444" },
+            { name: "Maximum 67 Rizz God", mult: 10.0, chance: 0.0001, color: "#ffd700" }
+        ];
+
+        // --- SFX AUDIO ENGINE ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playTone(freq, type, duration, vol=0.1) {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(); osc.stop(audioCtx.currentTime + duration);
+        }
+
+        // --- SAVE SYSTEM ---
+        function saveGame() {
+            const data = { balance, jackpots, rollDelay, delayPrice, hasTriple, currentTitle, ownedSkins };
+            localStorage.setItem('neon67_save', JSON.stringify(data));
+        }
+
+        function loadGame() {
+            const saved = localStorage.getItem('neon67_save');
+            if (saved) {
+                const d = JSON.parse(saved);
+                balance = d.balance; jackpots = d.jackpots; rollDelay = d.rollDelay;
+                delayPrice = d.delayPrice; hasTriple = d.hasTriple;
+                currentTitle = d.currentTitle; ownedSkins = d.ownedSkins;
+                updateUI();
+            }
+        }
+
+        // --- UI CORE ---
+        function updateUI() {
+            document.getElementById('balance').textContent = `$${Math.floor(balance)}`;
+            document.getElementById('jackpot-count').textContent = `🏆 ${jackpots}`;
+            document.getElementById('click-power').textContent = `$${1 + (jackpots * 2)}`;
+            document.getElementById('buy-delay').textContent = `$${Math.floor(delayPrice)}`;
+            
+            const tb = document.getElementById('current-title-box');
+            tb.innerHTML = `${currentTitle.name} <span class="opacity-40 ml-2">(${currentTitle.mult}x)</span>`;
+            tb.style.color = currentTitle.color;
+            tb.style.borderColor = currentTitle.color;
+
+            if (hasTriple) {
+                document.getElementById('buy-triple').textContent = "OWNED";
+                document.getElementById('buy-triple').disabled = true;
+                document.getElementById('triple-indicator').classList.remove('hidden');
+            }
+            saveGame();
+        }
+
+        function showTab(id) {
+            ['earn', 'play', 'shop'].forEach(t => {
+                document.getElementById('view-' + t).classList.add('hidden');
+                document.getElementById('t-' + t).classList.remove('active');
+            });
+            document.getElementById('view-' + id).classList.remove('hidden');
+            document.getElementById('t-' + id).classList.add('active');
+        }
+
+        function quickBet(pct) { 
+            document.getElementById('bet-input').value = Math.floor(balance * pct); 
+            playTone(440, 'sine', 0.1);
+        }
+
+        // --- ACTIONS ---
+        document.getElementById('clicker').onclick = () => {
+            balance += (1 + (jackpots * 2));
+            playTone(600, 'square', 0.05, 0.05);
+            updateUI();
+        };
+
+        function rollGacha() {
+            if (balance < 500) return;
+            balance -= 500;
+            playTone(800, 'sawtooth', 0.2);
+            const rand = Math.random();
+            let cum = 0;
+            for (const t of TITLES) {
+                cum += t.chance;
+                if (rand <= cum) { currentTitle = t; break; }
+            }
+            updateUI();
+        }
+
+        function buyUpgrade(type) {
+            if (type === 'delay' && balance >= delayPrice && rollDelay > 0.2) {
+                balance -= delayPrice; rollDelay -= 0.1; delayPrice *= 1.6;
+            } else if (type === 'triple' && balance >= 88888 && !hasTriple) {
+                balance -= 88888; hasTriple = true;
+            }
+            playTone(1000, 'sine', 0.2);
+            updateUI();
+        }
+
+        function buySkin(name, p, s) {
+            if (!ownedSkins.includes(name)) {
+                if (balance >= 1000) { balance -= 1000; ownedSkins.push(name); }
+                else return;
+            }
+            document.documentElement.style.setProperty('--primary', p);
+            document.documentElement.style.setProperty('--secondary', s);
+            updateUI();
+        }
+
+        function winGame() {
+            if (balance >= 676767) {
+                const total = Math.floor((Date.now() - startTime)/1000);
+                document.getElementById('time-taken').textContent = `Time: ${Math.floor(total/60)}m ${total%60}s`;
+                document.getElementById('main-ui').classList.add('hidden');
+                document.getElementById('win-screen').classList.remove('hidden');
+                document.body.classList.add('rave-bg');
+                setInterval(() => playTone(Math.random()*400+100, 'sawtooth', 0.1), 100);
+            }
+        }
+
+        // --- GAMEPLAY LOOP ---
+        document.getElementById('roll-btn').onclick = async () => {
+            if (isRolling) return;
+            const bet = parseInt(document.getElementById('bet-input').value);
+            if (isNaN(bet) || bet <= 0 || bet > balance) return;
+
+            isRolling = true;
+            document.getElementById('roll-btn').disabled = true;
+            document.getElementById('num-display').classList.remove('jackpot-anim');
+
+            let shuffle = setInterval(() => {
+                document.getElementById('num-display').textContent = Math.floor(Math.random()*100).toString().padStart(2,'0');
+                playTone(200, 'sine', 0.05, 0.02);
+            }, 70);
+
+            await new Promise(r => setTimeout(r, rollDelay * 1000));
+            clearInterval(shuffle);
+
+            const rolls = hasTriple ? [0,0,0].map(() => Math.floor(Math.random()*100)) : [Math.floor(Math.random()*100)];
+            document.getElementById('num-display').textContent = rolls.map(r => r.toString().padStart(2,'0')).join(" | ");
+            document.getElementById('num-display').style.fontSize = hasTriple ? "1.8rem" : "3.75rem";
+
+            let change = 0;
+            let status = "LOSE";
+            let color = "text-gray-500";
+
+            rolls.forEach(res => {
+                const s = res.toString().padStart(2,'0');
+                let mult = -0.5;
+                if (res === 67) { 
+                    mult = 67; jackpots++; status = "JACKPOT!"; color = "text-yellow-400";
+                    document.getElementById('num-display').classList.add('jackpot-anim');
+                    playTone(1200, 'square', 0.5);
+                } else if ([6,7,60,70].includes(res)) {
+                    mult = 2; status = "WIN X2"; color = "neon-text-blue";
+                } else if (s.includes('6') || s.includes('7')) {
+                    mult = 1.2; status = "WIN X1.2"; color = "neon-text-pink";
+                } else if ([69,0,99].includes(res)) {
+                    mult = -10; status = "PENALTY!"; color = "text-red-600";
+                }
+                change += (bet * mult * currentTitle.mult);
+            });
+
+            balance += change;
+            if (balance < 0) balance = 0;
+            document.getElementById('msg').textContent = status;
+            document.getElementById('msg').className = `h-5 text-[12px] font-bold mt-1 uppercase ${color}`;
+            
+            updateUI();
+            isRolling = false;
+            document.getElementById('roll-btn').disabled = false;
+        };
+
+        // --- BACKGROUND CANVAS ---
+        const canvas = document.getElementById('bg-canvas');
+        const ctx = canvas.getContext('2d');
+        let pts = [];
+        function init() {
+            canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+            pts = Array.from({length: 40}, () => ({
+                x: Math.random()*canvas.width, y: Math.random()*canvas.height,
+                s: Math.random()*20+10, v: Math.random()*1+0.5
+            }));
+        }
+        function draw() {
+            ctx.fillStyle = '#050505'; ctx.fillRect(0,0,canvas.width,canvas.height);
+            const prim = getComputedStyle(document.documentElement).getPropertyValue('--primary').trim();
+            pts.forEach(p => {
+                p.y -= p.v; if(p.y < -30) p.y = canvas.height + 30;
+                ctx.fillStyle = prim + "22";
+                ctx.font = `${p.s}px Orbitron`; ctx.fillText('67', p.x, p.y);
+            });
+            requestAnimationFrame(draw);
+        }
+
+        window.addEventListener('resize', init);
+        window.onload = () => { loadGame(); init(); draw(); };
     </script>
 </body>
 </html>
