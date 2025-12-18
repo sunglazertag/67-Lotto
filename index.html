@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Neon Jackpot 67 - Ultimate BGM Edition</title>
+    <title>Neon Jackpot 67 - Motherboard Update</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
@@ -12,6 +12,7 @@
             --primary: #ff00ff;
             --secondary: #00ffff;
             --bg: #050505;
+            --text-main: #fff;
         }
 
         body {
@@ -19,11 +20,12 @@
             overflow: hidden;
             background-color: var(--bg);
             font-family: 'Orbitron', sans-serif;
-            color: #fff;
+            color: var(--text-main);
             height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
+            transition: background-color 0.5s, filter 0.5s;
         }
 
         #bg-canvas { position: fixed; top: 0; left: 0; z-index: -1; }
@@ -33,8 +35,21 @@
             border: 2px solid var(--primary);
             box-shadow: 0 0 15px var(--primary);
             border-radius: 20px;
+            padding: 24px;
             backdrop-filter: blur(10px);
+            transition: all 0.5s;
         }
+
+        /* Joker Skin Override */
+        body.skin-joker { --bg: #002200; --primary: #ff00ff; --secondary: #00ff00; }
+        body.skin-joker .neon-box { background: rgba(0, 40, 0, 0.95); border-color: #ff00ff; }
+        
+        /* Rainbow Skin Override */
+        body.skin-rainbow { animation: rainbow-bg 5s infinite alternate; }
+        body.skin-rainbow .neon-box { animation: rainbow-border 3s infinite; background: rgba(0,0,0,0.9); }
+        
+        @keyframes rainbow-bg { 0%{background:#1a0000} 25%{background:#1a1a00} 50%{background:#001a00} 75%{background:#00001a} 100%{background:#1a001a} }
+        @keyframes rainbow-border { 0%{border-color:red; box-shadow:0 0 15px red} 20%{border-color:yellow; box-shadow:0 0 15px yellow} 40%{border-color:lime; box-shadow:0 0 15px lime} 60%{border-color:cyan; box-shadow:0 0 15px cyan} 80%{border-color:blue; box-shadow:0 0 15px blue} 100%{border-color:magenta; box-shadow:0 0 15px magenta} }
 
         .neon-text-blue { color: var(--secondary); text-shadow: 0 0 10px var(--secondary); }
         .neon-text-pink { color: var(--primary); text-shadow: 0 0 10px var(--primary); }
@@ -47,7 +62,6 @@
             color: #000;
             font-weight: 900;
         }
-
         .btn-action:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 0 20px var(--primary); }
         .btn-action:disabled { background: #333; box-shadow: none; opacity: 0.5; cursor: not-allowed; color: #777; }
 
@@ -65,22 +79,24 @@
 
         .hidden { display: none !important; }
         
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); filter: brightness(1); }
-            50% { transform: scale(1.05); filter: brightness(1.3); }
-        }
+        @keyframes pulse { 0%, 100% { transform: scale(1); filter: brightness(1); } 50% { transform: scale(1.05); filter: brightness(1.3); } }
         .jackpot-anim { animation: pulse 0.3s infinite; color: #ffd700 !important; text-shadow: 0 0 20px #ffd700 !important; }
 
-        .shop-item {
+        .shake { animation: shake 0.3s cubic-bezier(.36,.07,.19,.97) both; }
+        @keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } 40%, 60% { transform: translate3d(4px, 0, 0); } }
+
+        .shop-item, .ach-item, .chip-item {
             background: rgba(255,255,255,0.05);
             border-radius: 10px;
             padding: 10px;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
             border: 1px solid rgba(255,255,255,0.1);
         }
+        .ach-item.locked { opacity: 0.5; filter: grayscale(1); }
+        .ach-item.unlocked { border-color: var(--primary); background: rgba(255,255,255,0.1); }
 
-        #win-screen {
-            position: fixed; inset: 0; background: #000; z-index: 100;
+        #win-screen, #don-screen, #system-failure-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 100;
             display: flex; flex-direction: column; justify-content: center; align-items: center;
         }
 
@@ -91,35 +107,106 @@
         }
 
         .rave-bg { animation: rave 0.1s infinite !important; }
-        @keyframes rave {
-            0% { background: #ff0000; } 20% { background: #00ff00; }
-            40% { background: #0000ff; } 60% { background: #ffff00; }
-            80% { background: #ff00ff; } 100% { background: #00ffff; }
-        }
+        @keyframes rave { 0% { background: #ff0000; } 20% { background: #00ff00; } 40% { background: #0000ff; } 60% { background: #ffff00; } 80% { background: #ff00ff; } 100% { background: #00ffff; } }
         
+        #notify-popup {
+            position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-100px);
+            background: var(--primary); color: black; font-weight: bold;
+            padding: 10px 20px; border-radius: 30px; z-index: 200;
+            box-shadow: 0 0 20px var(--primary);
+            transition: transform 0.3s ease-out;
+            text-align: center;
+        }
+        #notify-popup.show { transform: translateX(-50%) translateY(0); }
+
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 10px; }
 
-        /* Hidden BGM Container */
-        #yt-player { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+        /* --- GLITCH FX --- */
+        .glitch-blood-moon { filter: sepia(1) hue-rotate(-50deg) saturate(3) contrast(1.2); }
+        .glitch-blood-moon .neon-box { border-color: red; box-shadow: 0 0 20px red; }
+        .glitch-blood-moon .btn-action { background: red; box-shadow: 0 0 20px red; color: black; }
+        
+        .glitch-matrix { font-family: 'Courier New', monospace; color: #0f0 !important; }
+        .glitch-matrix .neon-box { border-color: #0f0; box-shadow: 0 0 10px #0f0; background: rgba(0,20,0,0.95); }
+        .glitch-matrix * { text-shadow: 2px 0 0 red, -2px 0 0 blue; }
+
+        .zero-g-orb {
+            position: absolute; width: 80px; height: 80px; border-radius: 50%;
+            background: rgba(0,0,0,0.8); border: 2px solid var(--secondary);
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 900; font-size: 1.5rem; color: #fff;
+            animation: float 3s infinite ease-in-out;
+            cursor: crosshair; z-index: 50; box-shadow: 0 0 15px var(--secondary);
+        }
+        @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-20px)} }
+
+        .chip-slot {
+            width: 100%; height: 60px; border: 2px dashed rgba(255,255,255,0.2);
+            border-radius: 8px; display: flex; align-items: center; justify-content: center;
+            font-size: 10px; text-transform: uppercase; color: rgba(255,255,255,0.4);
+            cursor: pointer; transition: 0.2s; background: rgba(0,0,0,0.3);
+        }
+        .chip-slot.occupied { border-style: solid; border-color: var(--secondary); color: var(--secondary); background: rgba(0,255,255,0.1); }
+        .chip-slot:hover { border-color: var(--primary); }
     </style>
 </head>
 <body>
     <audio id="local-bgm" loop preload="auto">
-    <source src="bgm.mp3" type="audio/mpeg">
-</audio>
+        <source src="bgm.mp3" type="audio/mpeg">
+    </audio>
+
     <canvas id="bg-canvas"></canvas>
-    <div id="yt-player"></div> <div id="win-screen" class="hidden">
+
+    <div id="notify-popup">
+        <div class="text-[10px] uppercase tracking-widest">Achievement Unlocked</div>
+        <div id="notify-text" class="text-lg font-black">TITLE HERE</div>
+    </div>
+
+    <div id="system-failure-overlay" class="hidden">
+        <h1 class="text-6xl font-black text-white mb-4 tracking-tighter">SYSTEM FAILURE</h1>
+        <p class="text-sm opacity-50 uppercase tracking-widest mb-8">Video Output: Offline</p>
+        <div class="animate-pulse text-red-500 font-bold">AUDIO SENSORS ONLY</div>
+        <button id="blind-roll-btn" class="mt-12 border border-white px-8 py-4 rounded hover:bg-white hover:text-black transition uppercase font-bold">BLIND ROLL</button>
+    </div>
+
+    <div id="zero-g-container" class="fixed inset-0 pointer-events-none z-40 hidden"></div>
+
+    <div id="win-screen" class="hidden">
         <h1 class="text-4xl font-black mb-4 uppercase">Victory Achieved</h1>
         <p id="time-taken" class="text-xl mb-10 opacity-70">Time: 00:00</p>
         <div class="mega-67">67</div>
-        <button onclick="location.reload()" class="mt-10 btn-action px-6 py-2 rounded">Restart</button>
+        <p class="text-red-500 mt-4 text-xs font-bold uppercase tracking-widest">Warning: Save File Will Be Wiped</p>
+        <button onclick="hardReset()" class="mt-4 btn-action px-6 py-2 rounded">Restart Game</button>
     </div>
 
-    <div id="main-ui" class="neon-box p-6 w-full max-w-md mx-4 h-[680px] flex flex-col relative">
+    <div id="don-screen" class="hidden">
+        <h1 class="text-3xl font-black mb-2 uppercase text-yellow-400">Double or Nothing?</h1>
+        <p class="text-xs opacity-60 mb-8 tracking-widest">A 67 WAS ROLLED. RISK IT ALL.</p>
+        
+        <div class="text-center mb-8">
+            <p class="text-xs uppercase opacity-50">Pending Win</p>
+            <p id="don-amount" class="text-6xl font-black text-white">$0</p>
+        </div>
+
+        <div class="flex gap-4">
+            <button onclick="resolveDoN(false)" class="bg-gray-800 border border-white/20 text-white px-6 py-4 rounded font-bold hover:bg-gray-700 transition">
+                TAKE <span id="btn-take-val">$0</span>
+            </button>
+            <button onclick="resolveDoN(true)" class="btn-action bg-red-600 !text-white !box-shadow-red px-6 py-4 rounded font-bold text-xl animate-pulse">
+                DOUBLE IT 🎲
+            </button>
+        </div>
+    </div>
+
+    <div id="main-ui" class="neon-box w-full max-w-md mx-4 h-[720px] flex flex-col relative">
         <button id="bgm-toggle" class="absolute top-2 right-4 text-[10px] opacity-50 hover:opacity-100 border border-white/20 px-2 py-0.5 rounded uppercase font-bold">🔊 BGM: ON</button>
 
-        <div class="flex justify-between items-end mb-4 border-b border-white/10 pb-2">
+        <div id="glitch-banner" class="hidden absolute top-0 left-0 right-0 bg-red-600 text-black text-center text-[10px] font-bold py-1 uppercase animate-pulse rounded-t-lg z-10">
+            ⚠️ WARNING: BLOOD MOON ACTIVE ⚠️
+        </div>
+
+        <div class="flex justify-between items-end mb-4 border-b border-white/10 pb-2 mt-4">
             <div>
                 <p class="text-[10px] uppercase opacity-60">Balance</p>
                 <p id="balance" class="text-2xl font-black neon-text-blue">$0</p>
@@ -140,10 +227,13 @@
         <div class="flex gap-2 mb-4">
             <button onclick="showTab('earn')" id="t-earn" class="tab-btn active flex-1 py-1 text-xs font-bold uppercase">Earn</button>
             <button onclick="showTab('play')" id="t-play" class="tab-btn flex-1 py-1 text-xs font-bold uppercase">Play</button>
+            <button onclick="showTab('deck')" id="t-deck" class="tab-btn flex-1 py-1 text-xs font-bold uppercase">Deck</button>
             <button onclick="showTab('shop')" id="t-shop" class="tab-btn flex-1 py-1 text-xs font-bold uppercase">Shop</button>
+            <button onclick="showTab('ach')" id="t-ach" class="tab-btn flex-1 py-1 text-xs font-bold uppercase">Awards</button>
         </div>
 
-        <div class="flex-grow overflow-y-auto pr-2">
+        <div id="scroll-area" class="flex-grow overflow-y-auto pr-2 pb-8">
+            
             <div id="view-earn" class="text-center py-6">
                 <div id="clicker" class="click-orb mx-auto mb-6">
                     <span id="click-symbol" class="text-4xl font-black neon-text-blue">$</span>
@@ -171,11 +261,32 @@
                 <button id="roll-btn" class="btn-action w-full py-4 rounded-lg text-xl mb-4">ROLL</button>
                 
                 <div class="grid grid-cols-2 gap-1 text-[9px] text-left">
-                    <div class="p-2 border border-white/5 rounded">67: <span class="text-yellow-400 font-bold">x67</span></div>
+                    <div class="p-2 border border-white/5 rounded">67: <span class="text-yellow-400 font-bold">x67 + DoN</span></div>
                     <div class="p-2 border border-white/5 rounded">6,7,60,70: <span class="neon-text-blue font-bold">x2</span></div>
                     <div class="p-2 border border-white/5 rounded">Has 6 or 7: <span class="neon-text-pink font-bold">x1.2</span></div>
-                    <div class="p-2 border border-white/5 rounded">69, 0, 99: <span class="text-red-500 font-bold">x-10</span></div>
+                    <div class="p-2 border border-white/5 rounded">0, 99: <span class="text-red-500 font-bold">x-10</span></div>
                 </div>
+            </div>
+
+            <div id="view-deck" class="hidden">
+                <p class="text-[10px] mb-2 opacity-50 uppercase tracking-widest font-bold">Motherboard (Active Chips)</p>
+                <div class="grid grid-cols-3 gap-2 mb-6">
+                    <div id="slot-0" class="chip-slot" onclick="unequipChip(0)">EMPTY</div>
+                    <div id="slot-1" class="chip-slot" onclick="unequipChip(1)">EMPTY</div>
+                    <div id="slot-2" class="chip-slot" onclick="unequipChip(2)">EMPTY</div>
+                </div>
+
+                <div class="flex justify-between items-center mb-2 border-t border-white/10 pt-4">
+                    <p class="text-[10px] opacity-50 uppercase tracking-widest font-bold">Black Market</p>
+                    <p class="text-[9px] text-yellow-400" id="market-timer">New Stock: 10:00</p>
+                </div>
+                
+                <div id="market-list" class="mb-6">
+                    </div>
+
+                <p class="text-[10px] mb-2 opacity-50 uppercase tracking-widest font-bold border-t border-white/10 pt-4">Inventory</p>
+                <div id="chip-inventory" class="space-y-2">
+                    </div>
             </div>
 
             <div id="view-shop" class="hidden">
@@ -192,11 +303,11 @@
                 </div>
                 <div class="shop-item flex justify-between items-center">
                     <div><p class="font-bold text-xs text-white">Triple Sync</p><p class="text-[8px] opacity-60">Roll 3 Numbers</p></div>
-                    <button onclick="buyUpgrade('triple')" id="buy-triple" class="btn-action px-3 py-1 rounded text-xs">$88888</button>
+                    <button onclick="buyUpgrade('triple')" id="buy-triple" class="btn-action px-3 py-1 rounded text-xs">$88,888</button>
                 </div>
 
                 <p class="text-[10px] my-4 opacity-50 uppercase tracking-widest font-bold">Skins ($1k)</p>
-                <div class="grid grid-cols-2 gap-2 mb-6">
+                <div class="grid grid-cols-2 gap-2 mb-6" id="skin-grid">
                     <button onclick="buySkin('Default', '#ff00ff', '#00ffff')" class="p-2 border border-white/10 rounded text-[9px]">PINK</button>
                     <button onclick="buySkin('Toxic', '#39ff14', '#ffff00')" class="p-2 border border-white/10 rounded text-[9px]">TOXIC</button>
                     <button onclick="buySkin('Gold', '#ffd700', '#ffffff')" class="p-2 border border-white/10 rounded text-[9px]">GOLD</button>
@@ -204,45 +315,61 @@
                 </div>
 
                 <div class="p-4 border-2 border-yellow-500 rounded bg-yellow-500/10 text-center mb-4">
-                    <button onclick="winGame()" class="btn-action bg-yellow-500 w-full py-2 rounded text-xs !text-black">VICTORY ($676,767)</button>
+                    <button onclick="winGame()" class="btn-action bg-yellow-500 w-full py-2 rounded text-xs !text-black">VICTORY ($67,676,767)</button>
                 </div>
             </div>
+
+            <div id="view-ach" class="hidden">
+                <div id="ach-list"></div>
+            </div>
+        </div>
+
+        <div class="absolute bottom-0 left-0 right-0 h-8 bg-black/80 border-t border-white/10 flex justify-between items-center px-4 text-[9px] uppercase font-bold text-gray-500 rounded-b-xl">
+            <span>Cycle: <span id="cycle-timer-bar" class="text-white">--:--</span></span>
+            <span>Anomaly: <span id="event-timer-bar" class="text-white">--:--</span></span>
         </div>
     </div>
 
     <script>
-        // --- BGM LOGIC ---
-const bgm = document.getElementById('local-bgm');
-const bgmBtn = document.getElementById('bgm-toggle');
-let bgmInitialized = false;
+        // --- DATA & CONFIG ---
+        const ACHIEVEMENT_DATA = [
+            { id: 'first_taste', title: 'First Taste', desc: 'Reach $1,000 Balance' },
+            { id: 'millionaire', title: 'Neon Millionaire', desc: 'Reach $1,000,000 Balance' },
+            { id: 'gacha_addict', title: 'Title Collector', desc: 'Roll Gacha 20 times' },
+            { id: 'god_speed', title: 'God Speed', desc: 'Max out Roll Speed' },
+            { id: 'the_chosen_one', title: 'The Chosen One', desc: 'Roll 67 on your very first roll' },
+            { id: 'pure_skill', title: 'Pure Skill', desc: 'Roll 67 with "No Title"' },
+            { id: 'golden_trio', title: 'The Golden Trio', desc: 'Triple Sync: All numbers contain 6 or 7' },
+            { id: 'miracle', title: 'Miracle', desc: 'Hit 67 with < $10 left' },
+            { id: 'diamond_hands', title: 'Diamond Hands', desc: 'Win DoN 3 times in a row' },
+            { id: 'greed', title: 'Greed is Good', desc: 'Lose >$50k in DoN' },
+            { id: 'the_bottom', title: 'The Bottom', desc: 'Reach exactly $0' },
+            { id: 'hohin', title: 'Hohin Moment', desc: 'Roll 0 or 99 three times quickly' },
+            { id: 'chip_collector', title: 'Tech Geek', desc: 'Buy 5 Chips' },
+            { id: 'survivor', title: 'Survivor', desc: 'Survive a Blood Moon' },
+            { id: 'mute_spammer', title: 'Annoyed Sound Guy', desc: '??? (Secret: Unlocks Joker Skin)' },
+            { id: 'rgb_god', title: 'Completionist', desc: 'Unlock all other Achievements (Unlocks Rainbow Skin)' }
+        ];
 
-function toggleBGM() {
-    if (bgm.paused) {
-        bgm.play().catch(e => console.log("Playback interaction required"));
-        bgmBtn.textContent = "🔊 BGM: ON";
-    } else {
-        bgm.pause();
-        bgmBtn.textContent = "🔇 BGM: OFF";
-    }
-}
+        const CHIP_DB = [
+            { id: 'firewall', name: 'Firewall', desc: 'Block one 0/99 penalty every 50 rolls', price: 10000, color: '#3b82f6' },
+            { id: 'overclock', name: 'Overclock', desc: '2x Speed, but Betting costs +20%', price: 12000, color: '#ef4444' },
+            { id: 'magnet', name: 'Magnet', desc: 'Numbers 6 & 7 larger. Click Power x1.25', price: 15000, color: '#eab308' },
+            { id: 'vampire', name: 'Vampire', desc: 'Recover 5% of bet on Loss', price: 18000, color: '#a855f7' },
+            { id: 'stabilizer', name: 'Stabilizer', desc: 'Penalty is -5x instead of -10x', price: 11000, color: '#10b981' },
+            { id: 'recycler', name: 'Recycler', desc: 'Refund 100% bet on 5th consecutive loss', price: 14000, color: '#14b8a6' },
+            { id: 'lucky_seven', name: 'Lucky 7', desc: 'Slightly higher chance for 7s', price: 25000, color: '#f97316' },
+            { id: 'greed_core', name: 'Greed Core', desc: 'Win 15% more, Lose 10% more', price: 20000, color: '#f43f5e' }
+        ];
 
-// Modern browsers require a user gesture to play audio. 
-// This starts the music on the first click anywhere in the game.
-document.addEventListener('click', () => {
-    if (!bgmInitialized) {
-        bgm.play().catch(() => {}); 
-        bgmInitialized = true;
-        bgmBtn.textContent = "🔊 BGM: ON";
-    }
-}, { once: true });
+        const GLITCH_DB = [
+            { id: 'blood_moon', name: 'Blood Moon', duration: 30, chance: 0.15, desc: 'Wins x4. Losses on 0/99 WIPE SAVE.' },
+            { id: 'zero_gravity', name: 'Zero Gravity', duration: 30, chance: 0.2, desc: 'Floating Results. Catch them. Slow Motion.' },
+            { id: 'system_failure', name: 'System Failure', duration: 30, chance: 0.1, desc: 'Video Offline. Use Sound.' },
+            { id: 'gold_rush', name: 'Gold Rush', duration: 30, chance: 0.25, desc: 'Everything x2. Clicks x2. No Penalties.' },
+            { id: 'matrix', name: 'Matrix Rain', duration: 30, chance: 0.3, desc: 'Reality Inversion: Wins <-> Losses.' }
+        ];
 
-// Specific toggle button listener
-bgmBtn.onclick = (e) => {
-    e.stopPropagation(); // Prevents the 'first-click' listener from double-firing
-    toggleBGM();
-};
-
-        // --- DATA & STATE ---
         let balance = 0;
         let jackpots = 0;
         let rollDelay = 2.0;
@@ -252,6 +379,30 @@ bgmBtn.onclick = (e) => {
         let startTime = Date.now();
         let ownedSkins = ['Default'];
         let currentTitle = { name: "NO TITLE", mult: 1.0, color: "#6b7280" };
+        let pendingDoN = 0;
+        
+        // Chip System
+        let ownedChips = [];
+        let equippedChips = [null, null, null];
+        let marketNextReset = 0;
+        let marketStock = []; // Array of IDs
+        let firewallCounter = 50;
+        let lossStreak = 0;
+
+        // Glitch System
+        let glitchNextCheck = 0;
+        let currentGlitch = null;
+        let glitchEndTime = 0;
+        let zeroGOrb = null; // Element ref
+
+        // Stats Tracking
+        let totalRolls = 0;
+        let totalGacha = 0;
+        let donStreak = 0;
+        let penaltyTimestamps = [];
+        let unlockedAchievements = [];
+        let muteClicks = 0;
+        let muteTimer = null;
 
         const TITLES = [
             { name: "Chopped", mult: 0.9, chance: 0.20, color: "#6b7280" },
@@ -263,9 +414,10 @@ bgmBtn.onclick = (e) => {
             { name: "Maximum 67 Rizz God", mult: 10.0, chance: 0.0001, color: "#ffd700" }
         ];
 
-        // --- SFX AUDIO ENGINE ---
+        // --- AUDIO ---
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         function playTone(freq, type, duration, vol=0.1) {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
             osc.type = type;
@@ -276,29 +428,315 @@ bgmBtn.onclick = (e) => {
             osc.start(); osc.stop(audioCtx.currentTime + duration);
         }
 
-        // --- SAVE SYSTEM ---
-        function saveGame() {
-            const data = { balance, jackpots, rollDelay, delayPrice, hasTriple, currentTitle, ownedSkins };
-            localStorage.setItem('neon67_save', JSON.stringify(data));
-        }
+        const bgm = document.getElementById('local-bgm');
+        const bgmBtn = document.getElementById('bgm-toggle');
+        let bgmInitialized = false;
 
-        function loadGame() {
-            const saved = localStorage.getItem('neon67_save');
-            if (saved) {
-                const d = JSON.parse(saved);
-                balance = d.balance; jackpots = d.jackpots; rollDelay = d.rollDelay;
-                delayPrice = d.delayPrice; hasTriple = d.hasTriple;
-                currentTitle = d.currentTitle; ownedSkins = d.ownedSkins;
-                updateUI();
+        function toggleBGM() {
+            muteClicks++;
+            clearTimeout(muteTimer);
+            muteTimer = setTimeout(() => muteClicks = 0, 2000); 
+            if(muteClicks >= 10) checkAchievement('mute_spammer');
+
+            if (bgm.paused) {
+                bgm.play().catch(e => console.log("Interaction required"));
+                bgmBtn.textContent = "🔊 BGM: ON";
+            } else {
+                bgm.pause();
+                bgmBtn.textContent = "🔇 BGM: OFF";
             }
         }
 
-        // --- UI CORE ---
+        document.addEventListener('click', () => {
+            if (!bgmInitialized) {
+                bgm.play().catch(() => {}); 
+                bgmInitialized = true;
+                bgmBtn.textContent = "🔊 BGM: ON";
+            }
+        }, { once: true });
+        bgmBtn.onclick = (e) => { e.stopPropagation(); toggleBGM(); };
+
+        // --- SAVE/LOAD ---
+        function saveGame() {
+            const data = { 
+                balance, jackpots, rollDelay, delayPrice, hasTriple, currentTitle, ownedSkins,
+                totalRolls, totalGacha, donStreak, unlockedAchievements,
+                ownedChips, equippedChips, marketNextReset, marketStock
+            };
+            localStorage.setItem('neon67_v3_save', JSON.stringify(data));
+        }
+
+        function loadGame() {
+            const saved = localStorage.getItem('neon67_v3_save');
+            if (saved) {
+                const d = JSON.parse(saved);
+                balance = d.balance || 0; 
+                jackpots = d.jackpots || 0; 
+                rollDelay = d.rollDelay || 2.0;
+                delayPrice = d.delayPrice || 1000; 
+                hasTriple = d.hasTriple || false;
+                currentTitle = d.currentTitle || { name: "NO TITLE", mult: 1.0, color: "#6b7280" }; 
+                ownedSkins = d.ownedSkins || ['Default'];
+                totalRolls = d.totalRolls || 0;
+                totalGacha = d.totalGacha || 0;
+                donStreak = d.donStreak || 0;
+                unlockedAchievements = d.unlockedAchievements || [];
+                
+                // New Data
+                ownedChips = d.ownedChips || [];
+                equippedChips = d.equippedChips || [null, null, null];
+                marketNextReset = d.marketNextReset || 0;
+                marketStock = d.marketStock || [];
+
+                updateUI();
+                renderAchievements();
+                checkSpecialSkins();
+                renderDeck();
+            } else {
+                // First time load logic for timers
+                marketNextReset = Date.now() + 600000; // 10 mins
+                glitchNextCheck = Date.now() + 300000; // 5 mins
+                refreshMarket(true);
+            }
+        }
+        function hardReset() { localStorage.removeItem('neon67_v3_save'); location.reload(); }
+
+        // --- ACHIEVEMENT LOGIC ---
+        function checkAchievement(id) {
+            if (unlockedAchievements.includes(id)) return;
+            
+            unlockedAchievements.push(id);
+            const achData = ACHIEVEMENT_DATA.find(a => a.id === id);
+            
+            const popup = document.getElementById('notify-popup');
+            document.getElementById('notify-text').textContent = achData.title;
+            popup.classList.add('show');
+            playTone(1500, 'triangle', 0.5);
+            setTimeout(() => popup.classList.remove('show'), 3000);
+
+            if(id === 'mute_spammer') {
+                if(!ownedSkins.includes('Joker')) ownedSkins.push('Joker');
+                checkSpecialSkins();
+            }
+            
+            const normalCount = ACHIEVEMENT_DATA.length - 1; 
+            if(unlockedAchievements.length >= normalCount && !unlockedAchievements.includes('rgb_god')) {
+                checkAchievement('rgb_god');
+            }
+            if(id === 'rgb_god') {
+                 if(!ownedSkins.includes('Rainbow')) ownedSkins.push('Rainbow');
+                 checkSpecialSkins();
+            }
+
+            saveGame();
+            renderAchievements();
+        }
+
+        function renderAchievements() {
+            const container = document.getElementById('ach-list');
+            container.innerHTML = '';
+            ACHIEVEMENT_DATA.forEach(ach => {
+                const isUnlocked = unlockedAchievements.includes(ach.id);
+                const div = document.createElement('div');
+                div.className = `ach-item flex justify-between items-center ${isUnlocked ? 'unlocked' : 'locked'}`;
+                div.innerHTML = `
+                    <div>
+                        <p class="font-bold text-xs ${isUnlocked ? 'text-white' : 'text-gray-500'}">${ach.title}</p>
+                        <p class="text-[8px] opacity-60">${ach.desc}</p>
+                    </div>
+                    <div class="text-xs font-bold">${isUnlocked ? '✅' : '🔒'}</div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        // --- MARKET & CHIPS ---
+        function checkMarketTimer() {
+            const now = Date.now();
+            if (now >= marketNextReset) {
+                refreshMarket();
+                marketNextReset = now + 600000; // 10 mins
+            }
+            
+            const diff = marketNextReset - now;
+            const m = Math.floor(diff/60000);
+            const s = Math.floor((diff%60000)/1000).toString().padStart(2,'0');
+            const timeStr = `${m}:${s}`;
+            document.getElementById('market-timer').textContent = `New Stock: ${timeStr}`;
+            document.getElementById('cycle-timer-bar').textContent = timeStr;
+        }
+
+        function refreshMarket(force = false) {
+            // Pick 2 random chips
+            const available = CHIP_DB.filter(c => !ownedChips.includes(c.id));
+            if (available.length === 0) { marketStock = []; return; }
+            
+            const stock = [];
+            for(let i=0; i<2; i++) {
+                if (available.length > 0) {
+                    const idx = Math.floor(Math.random() * available.length);
+                    stock.push(available[idx].id);
+                    available.splice(idx, 1);
+                }
+            }
+            marketStock = stock;
+            renderDeck();
+        }
+
+        function buyChip(id) {
+            const chip = CHIP_DB.find(c => c.id === id);
+            if (balance >= chip.price && !ownedChips.includes(id)) {
+                balance -= chip.price;
+                ownedChips.push(id);
+                if(ownedChips.length >= 5) checkAchievement('chip_collector');
+                
+                // Remove from current stock visual
+                marketStock = marketStock.filter(sid => sid !== id);
+                
+                playTone(1200, 'square', 0.1);
+                updateUI();
+                renderDeck();
+            }
+        }
+
+        function equipChip(id) {
+            // Find first empty slot
+            const emptyIdx = equippedChips.indexOf(null);
+            if (emptyIdx !== -1 && !equippedChips.includes(id)) {
+                equippedChips[emptyIdx] = id;
+                renderDeck();
+                playTone(600, 'sine', 0.1);
+            }
+        }
+
+        function unequipChip(idx) {
+            equippedChips[idx] = null;
+            renderDeck();
+            playTone(400, 'sine', 0.1);
+        }
+
+        function renderDeck() {
+            // Active Slots
+            equippedChips.forEach((id, idx) => {
+                const el = document.getElementById(`slot-${idx}`);
+                if (id) {
+                    const data = CHIP_DB.find(c => c.id === id);
+                    el.textContent = data.name;
+                    el.className = "chip-slot occupied";
+                    el.style.borderColor = data.color;
+                    el.style.color = data.color;
+                } else {
+                    el.textContent = "EMPTY";
+                    el.className = "chip-slot";
+                    el.style = "";
+                }
+            });
+
+            // Market
+            const marketList = document.getElementById('market-list');
+            marketList.innerHTML = '';
+            marketStock.forEach(id => {
+                if (ownedChips.includes(id)) return;
+                const c = CHIP_DB.find(x => x.id === id);
+                const div = document.createElement('div');
+                div.className = "chip-item flex justify-between items-center";
+                div.innerHTML = `
+                    <div><p class="font-bold text-xs" style="color:${c.color}">${c.name}</p><p class="text-[8px] opacity-60">${c.desc}</p></div>
+                    <button onclick="buyChip('${c.id}')" class="btn-action px-2 py-1 rounded text-[9px] w-16">$${c.price/1000}k</button>
+                `;
+                marketList.appendChild(div);
+            });
+            if (marketStock.length === 0 && ownedChips.length < CHIP_DB.length) {
+                marketList.innerHTML = '<div class="text-[9px] opacity-50 text-center">SOLD OUT</div>';
+            }
+
+            // Inventory
+            const invList = document.getElementById('chip-inventory');
+            invList.innerHTML = '';
+            ownedChips.forEach(id => {
+                const c = CHIP_DB.find(x => x.id === id);
+                const isEquipped = equippedChips.includes(id);
+                const div = document.createElement('div');
+                div.className = `chip-item flex justify-between items-center ${isEquipped ? 'opacity-50' : ''}`;
+                div.innerHTML = `
+                    <div><p class="font-bold text-xs" style="color:${c.color}">${c.name}</p></div>
+                    <button onclick="equipChip('${c.id}')" ${isEquipped ? 'disabled' : ''} class="bg-white/10 border border-white/20 text-white px-2 py-1 rounded text-[9px] hover:bg-white/20">${isEquipped ? 'EQUIPPED' : 'EQUIP'}</button>
+                `;
+                invList.appendChild(div);
+            });
+        }
+
+        // --- GLITCH SYSTEM ---
+        function checkGlitchLoop() {
+            const now = Date.now();
+            
+            // Timer Logic
+            if (!currentGlitch && now >= glitchNextCheck) {
+                // 25% Chance Nothing, 75% Glitch (Changed from 60%)
+                if (Math.random() > 0.25) {
+                    // Pick Weighted Glitch? For now random
+                    const g = GLITCH_DB[Math.floor(Math.random() * GLITCH_DB.length)];
+                    activateGlitch(g);
+                } else {
+                    // No event, reset timer
+                    glitchNextCheck = now + 300000; // 5 mins
+                }
+            }
+
+            if (currentGlitch && now >= glitchEndTime) {
+                endGlitch();
+            }
+
+            // Status Bar Update
+            if (currentGlitch) {
+                const left = Math.ceil((glitchEndTime - now) / 1000);
+                document.getElementById('event-timer-bar').textContent = `ACTIVE (${left}s)`;
+                document.getElementById('event-timer-bar').className = "text-red-500 animate-pulse";
+            } else {
+                const diff = glitchNextCheck - now;
+                const m = Math.max(0, Math.floor(diff/60000));
+                const s = Math.max(0, Math.floor((diff%60000)/1000)).toString().padStart(2,'0');
+                document.getElementById('event-timer-bar').textContent = `${m}:${s}`;
+                document.getElementById('event-timer-bar').className = "text-white";
+            }
+        }
+
+        function activateGlitch(g) {
+            currentGlitch = g;
+            glitchEndTime = Date.now() + (g.duration * 1000);
+            
+            // Visuals
+            const banner = document.getElementById('glitch-banner');
+            banner.textContent = `⚠️ WARNING: ${g.name} ACTIVE ⚠️`;
+            banner.classList.remove('hidden');
+            
+            if (g.id === 'blood_moon') document.body.classList.add('glitch-blood-moon');
+            if (g.id === 'matrix') document.body.classList.add('glitch-matrix');
+            if (g.id === 'system_failure') {
+                document.getElementById('system-failure-overlay').classList.remove('hidden');
+            }
+
+            playTone(50, 'sawtooth', 1.0);
+        }
+
+        function endGlitch() {
+            if(currentGlitch && currentGlitch.id === 'blood_moon') checkAchievement('survivor');
+            currentGlitch = null;
+            glitchNextCheck = Date.now() + 300000;
+            
+            document.getElementById('glitch-banner').classList.add('hidden');
+            document.body.classList.remove('glitch-blood-moon', 'glitch-matrix');
+            document.getElementById('system-failure-overlay').classList.add('hidden');
+            document.getElementById('zero-g-container').classList.add('hidden');
+            document.getElementById('zero-g-container').innerHTML = '';
+        }
+
+        // --- CORE UI ---
         function updateUI() {
-            document.getElementById('balance').textContent = `$${Math.floor(balance)}`;
+            document.getElementById('balance').textContent = `$${Math.floor(balance).toLocaleString()}`;
             document.getElementById('jackpot-count').textContent = `🏆 ${jackpots}`;
-            document.getElementById('click-power').textContent = `$${1 + (jackpots * 2)}`;
-            document.getElementById('buy-delay').textContent = `$${Math.floor(delayPrice)}`;
+            document.getElementById('click-power').textContent = `$${(1 + (jackpots * 2)).toLocaleString()}`;
+            document.getElementById('buy-delay').textContent = `$${Math.floor(delayPrice).toLocaleString()}`;
             
             const tb = document.getElementById('current-title-box');
             tb.innerHTML = `${currentTitle.name} <span class="opacity-40 ml-2">(${currentTitle.mult}x)</span>`;
@@ -310,16 +748,24 @@ bgmBtn.onclick = (e) => {
                 document.getElementById('buy-triple').disabled = true;
                 document.getElementById('triple-indicator').classList.remove('hidden');
             }
+            
+            // Check milestones
+            if(balance >= 1000) checkAchievement('first_taste');
+            if(balance >= 1000000) checkAchievement('millionaire');
+            if(balance === 0 && totalRolls > 5) checkAchievement('the_bottom');
+
             saveGame();
         }
 
         function showTab(id) {
-            ['earn', 'play', 'shop'].forEach(t => {
+            ['earn', 'play', 'deck', 'shop', 'ach'].forEach(t => {
                 document.getElementById('view-' + t).classList.add('hidden');
                 document.getElementById('t-' + t).classList.remove('active');
             });
             document.getElementById('view-' + id).classList.remove('hidden');
             document.getElementById('t-' + id).classList.add('active');
+            
+            if(id === 'deck') renderDeck();
         }
 
         function quickBet(pct) { 
@@ -329,7 +775,19 @@ bgmBtn.onclick = (e) => {
 
         // --- ACTIONS ---
         document.getElementById('clicker').onclick = () => {
-            balance += (1 + (jackpots * 2));
+            let gain = (1 + (jackpots * 2));
+            
+            // Magnet Chip Synergy
+            if (equippedChips.includes('magnet')) {
+                gain *= 1.25;
+            }
+
+            // Gold Rush Glitch
+            if (currentGlitch && currentGlitch.id === 'gold_rush') {
+                gain *= 2;
+            }
+
+            balance += gain;
             playTone(600, 'square', 0.05, 0.05);
             updateUI();
         };
@@ -337,7 +795,10 @@ bgmBtn.onclick = (e) => {
         function rollGacha() {
             if (balance < 500) return;
             balance -= 500;
+            totalGacha++;
+            if(totalGacha >= 20) checkAchievement('gacha_addict');
             playTone(800, 'sawtooth', 0.2);
+            
             const rand = Math.random();
             let cum = 0;
             for (const t of TITLES) {
@@ -350,6 +811,7 @@ bgmBtn.onclick = (e) => {
         function buyUpgrade(type) {
             if (type === 'delay' && balance >= delayPrice && rollDelay > 0.2) {
                 balance -= delayPrice; rollDelay -= 0.1; delayPrice *= 1.6;
+                if(rollDelay <= 0.21) checkAchievement('god_speed');
             } else if (type === 'triple' && balance >= 88888 && !hasTriple) {
                 balance -= 88888; hasTriple = true;
             }
@@ -357,18 +819,50 @@ bgmBtn.onclick = (e) => {
             updateUI();
         }
 
+        function checkSpecialSkins() {
+            const grid = document.getElementById('skin-grid');
+            const specials = grid.querySelectorAll('.special-skin-btn');
+            specials.forEach(b => b.remove());
+
+            if(ownedSkins.includes('Joker')) {
+                const btn = document.createElement('button');
+                btn.className = "special-skin-btn p-2 border border-green-500 rounded text-[9px] text-green-500 font-bold";
+                btn.textContent = "JOKER";
+                btn.onclick = () => buySkin('Joker', '#ff00ff', '#00ff00');
+                grid.appendChild(btn);
+            }
+            if(ownedSkins.includes('Rainbow')) {
+                const btn = document.createElement('button');
+                btn.className = "special-skin-btn p-2 border border-white rounded text-[9px] font-bold";
+                btn.style.background = "linear-gradient(45deg, red, blue)";
+                btn.textContent = "RGB GOD";
+                btn.onclick = () => buySkin('Rainbow', '#ffffff', '#ffffff');
+                grid.appendChild(btn);
+            }
+        }
+
         function buySkin(name, p, s) {
             if (!ownedSkins.includes(name)) {
                 if (balance >= 1000) { balance -= 1000; ownedSkins.push(name); }
                 else return;
             }
-            document.documentElement.style.setProperty('--primary', p);
-            document.documentElement.style.setProperty('--secondary', s);
+            
+            document.body.className = ''; 
+            if (currentGlitch && currentGlitch.id === 'blood_moon') document.body.classList.add('glitch-blood-moon'); // Preserve glitch
+            if (currentGlitch && currentGlitch.id === 'matrix') document.body.classList.add('glitch-matrix');
+            
+            if(name === 'Joker') document.body.classList.add('skin-joker');
+            else if(name === 'Rainbow') document.body.classList.add('skin-rainbow');
+            else {
+                document.documentElement.style.setProperty('--primary', p);
+                document.documentElement.style.setProperty('--secondary', s);
+                document.documentElement.style.setProperty('--bg', '#050505');
+            }
             updateUI();
         }
 
         function winGame() {
-            if (balance >= 676767) {
+            if (balance >= 67676767) {
                 const total = Math.floor((Date.now() - startTime)/1000);
                 document.getElementById('time-taken').textContent = `Time: ${Math.floor(total/60)}m ${total%60}s`;
                 document.getElementById('main-ui').classList.add('hidden');
@@ -378,60 +872,296 @@ bgmBtn.onclick = (e) => {
             }
         }
 
-        // --- GAMEPLAY LOOP ---
-        document.getElementById('roll-btn').onclick = async () => {
+        function resolveDoN(gamble) {
+            if (!gamble) {
+                balance += pendingDoN;
+                donStreak = 0;
+                document.getElementById('don-screen').classList.add('hidden');
+                updateUI();
+                playTone(600, 'sine', 0.3);
+                document.getElementById('roll-btn').disabled = false;
+            } else {
+                const win = Math.random() < 0.5;
+                if (win) {
+                    pendingDoN *= 2;
+                    donStreak++;
+                    if(donStreak >= 3) checkAchievement('diamond_hands');
+                    playTone(800, 'square', 0.2);
+                    document.getElementById('don-amount').textContent = `$${Math.floor(pendingDoN).toLocaleString()}`;
+                    document.getElementById('btn-take-val').textContent = `$${Math.floor(pendingDoN).toLocaleString()}`;
+                } else {
+                    if(pendingDoN > 50000) checkAchievement('greed');
+                    playTone(100, 'sawtooth', 0.5); 
+                    pendingDoN = 0;
+                    donStreak = 0;
+                    document.getElementById('don-screen').classList.add('hidden');
+                    updateUI();
+                    document.getElementById('roll-btn').disabled = false;
+                }
+            }
+        }
+
+        // --- GAME LOGIC ---
+        
+        async function performRoll(blind = false) {
             if (isRolling) return;
-            const bet = parseInt(document.getElementById('bet-input').value);
-            if (isNaN(bet) || bet <= 0 || bet > balance) return;
+            const betInput = document.getElementById('bet-input');
+            let bet = parseInt(betInput.value);
+            
+            if (isNaN(bet) || bet <= 0 || bet > balance) {
+                betInput.classList.add('shake');
+                setTimeout(() => betInput.classList.remove('shake'), 300);
+                return;
+            }
+
+            // Apply Overclock Cost (Now 20%)
+            if(equippedChips.includes('overclock')) bet = Math.floor(bet * 1.2);
+            if(bet > balance) { betInput.classList.add('shake'); return; }
 
             isRolling = true;
-            document.getElementById('roll-btn').disabled = true;
-            document.getElementById('num-display').classList.remove('jackpot-anim');
+            if(!blind) document.getElementById('roll-btn').disabled = true;
+            else document.getElementById('blind-roll-btn').disabled = true;
 
+            const disp = document.getElementById('num-display');
+            disp.classList.remove('jackpot-anim');
+            document.getElementById('main-ui').classList.remove('shake');
+
+            // Magnet Visual Effect
+            if(equippedChips.includes('magnet')) disp.style.transform = "scale(1.1)";
+            else disp.style.transform = "scale(1)";
+
+            // Speed
+            let speed = rollDelay * 1000;
+            if (equippedChips.includes('overclock')) speed /= 2;
+            
+            // Zero Gravity Slowdown
+            if (currentGlitch && currentGlitch.id === 'zero_gravity') speed *= 4;
+
+            // Blind Mode (System Failure)
+            if (blind) {
+                // Audio Shuffle cues
+                let loops = 0;
+                let shuff = setInterval(() => {
+                    playTone(200, 'sine', 0.05, 0.02);
+                    loops++;
+                    if(loops > 10) { clearInterval(shuff); finishRollLogic(bet, true); }
+                }, 100);
+                return;
+            }
+
+            // Normal Visual Shuffle
             let shuffle = setInterval(() => {
-                document.getElementById('num-display').textContent = Math.floor(Math.random()*100).toString().padStart(2,'0');
+                disp.textContent = Math.floor(Math.random()*100).toString().padStart(2,'0');
                 playTone(200, 'sine', 0.05, 0.02);
             }, 70);
 
-            await new Promise(r => setTimeout(r, rollDelay * 1000));
+            await new Promise(r => setTimeout(r, speed));
             clearInterval(shuffle);
+            
+            finishRollLogic(bet, false);
+        }
 
-            const rolls = hasTriple ? [0,0,0].map(() => Math.floor(Math.random()*100)) : [Math.floor(Math.random()*100)];
-            document.getElementById('num-display').textContent = rolls.map(r => r.toString().padStart(2,'0')).join(" | ");
-            document.getElementById('num-display').style.fontSize = hasTriple ? "1.8rem" : "3.75rem";
+        // Logic split from animation for Zero Gravity / Blind handling
+        function finishRollLogic(bet, blindMode) {
+            // RNG Generation with Chip Modifiers
+            const generateNum = () => {
+                let r = Math.floor(Math.random()*100);
+                // Lucky 7 Chip: if 0-9, make it 7 sometimes? No, prompt says slightly more chance.
+                if (equippedChips.includes('lucky_seven') && Math.random() < 0.05) r = 7; 
+                return r;
+            }
 
-            let change = 0;
+            const rolls = hasTriple ? [0,0,0].map(() => generateNum()) : [generateNum()];
+            
+            // Zero Gravity Intercept
+            if (currentGlitch && currentGlitch.id === 'zero_gravity') {
+                spawnZeroGOrb(rolls, bet);
+                return;
+            }
+
+            displayResults(rolls, bet, blindMode);
+        }
+
+        function spawnZeroGOrb(rolls, bet) {
+            const container = document.getElementById('zero-g-container');
+            container.classList.remove('hidden');
+            const orb = document.createElement('div');
+            orb.className = 'zero-g-orb';
+            orb.textContent = '?';
+            orb.style.left = (20 + Math.random()*60) + '%';
+            orb.style.top = (20 + Math.random()*60) + '%';
+            
+            orb.onclick = () => {
+                orb.remove();
+                container.classList.add('hidden');
+                displayResults(rolls, bet, false);
+            };
+
+            container.appendChild(orb);
+        }
+
+        function displayResults(rolls, bet, blindMode) {
+            const disp = document.getElementById('num-display');
+            
+            if (!blindMode) {
+                disp.textContent = rolls.map(r => r.toString().padStart(2,'0')).join(" | ");
+                disp.style.fontSize = hasTriple ? "1.8rem" : "3.75rem";
+            }
+
+            let totalChange = 0;
             let status = "LOSE";
             let color = "text-gray-500";
+            let triggerDoN = false;
+            let tripleHasSixSeven = 0;
 
             rolls.forEach(res => {
                 const s = res.toString().padStart(2,'0');
-                let mult = -0.5;
-                if (res === 67) { 
+                let mult = -1.0; 
+
+                // --- GLITCH OVERRIDES ---
+                if (currentGlitch && currentGlitch.id === 'blood_moon') {
+                    // High risk high reward
+                    if (res === 67) { mult = 67 * 4; }
+                    else if ([0, 99].includes(res)) {
+                        hardReset(); // WIPE SAVE
+                        return; 
+                    } else if (mult > 0) mult *= 4;
+                }
+                
+                if (currentGlitch && currentGlitch.id === 'gold_rush') {
+                    if (mult < 0) mult = 0; // No loss
+                    else mult *= 2;
+                }
+
+                // --- STANDARD LOGIC ---
+                if(res === 67) { 
                     mult = 67; jackpots++; status = "JACKPOT!"; color = "text-yellow-400";
-                    document.getElementById('num-display').classList.add('jackpot-anim');
-                    playTone(1200, 'square', 0.5);
-                } else if ([6,7,60,70].includes(res)) {
+                    triggerDoN = true;
+                    if(totalRolls === 0) checkAchievement('the_chosen_one');
+                    if(currentTitle.name === 'NO TITLE') checkAchievement('pure_skill');
+                    if(balance - bet < 10) checkAchievement('miracle');
+                } else if ([6, 7, 60, 70].includes(res)) {
                     mult = 2; status = "WIN X2"; color = "neon-text-blue";
                 } else if (s.includes('6') || s.includes('7')) {
-                    mult = 1.2; status = "WIN X1.2"; color = "neon-text-pink";
-                } else if ([69,0,99].includes(res)) {
-                    mult = -10; status = "PENALTY!"; color = "text-red-600";
+                    mult = 1.2; if(status !== "WIN X2" && status !== "JACKPOT!") { status = "WIN X1.2"; color = "neon-text-pink"; }
+                } else if ([0, 99].includes(res)) {
+                    // Penalty
+                    let penalty = -10;
+                    
+                    // Stabilizer Chip (Now -5x)
+                    if(equippedChips.includes('stabilizer')) penalty = -5;
+
+                    // Firewall Chip (Now 50 rolls cooldown)
+                    if(equippedChips.includes('firewall')) {
+                        if (firewallCounter >= 50) {
+                            penalty = 0; status = "BLOCKED"; color = "text-blue-500";
+                            firewallCounter = 0;
+                        } else {
+                            firewallCounter++;
+                        }
+                    } else {
+                        firewallCounter++;
+                    }
+
+                    mult = penalty;
+                    status = "PENALTY!"; color = "text-red-600";
+                    
+                    const now = Date.now();
+                    penaltyTimestamps.push(now);
+                    penaltyTimestamps = penaltyTimestamps.filter(t => now - t < 60000); 
+                    if(penaltyTimestamps.length >= 3) checkAchievement('hohin');
                 }
-                change += (bet * mult * currentTitle.mult);
+
+                // --- MATRIX INVERSION LOGIC ---
+                if (currentGlitch && currentGlitch.id === 'matrix') {
+                    mult *= -1;
+                    if (mult > 0) { 
+                        status = "MATRIX WIN"; 
+                        color = "glitch-matrix"; // reusing class as color hook
+                        // If it was a penalty (-10) it is now +10
+                    } else {
+                        status = "MATRIX LOSS";
+                        color = "text-red-500";
+                        // If it was a jackpot (67) it is now -67
+                        if (res === 67) triggerDoN = false;
+                    }
+                }
+
+                if(hasTriple && (s.includes('6') || s.includes('7'))) tripleHasSixSeven++;
+                
+                let effectiveMult = mult;
+                if (mult > 0) effectiveMult = mult * currentTitle.mult;
+
+                // Greed Core Chip (Now +15% Win)
+                if (equippedChips.includes('greed_core')) {
+                    if (effectiveMult > 0) effectiveMult *= 1.15;
+                    else effectiveMult *= 1.1; // Bigger loss too
+                }
+
+                totalChange += (bet * effectiveMult);
             });
 
-            balance += change;
-            if (balance < 0) balance = 0;
-            document.getElementById('msg').textContent = status;
-            document.getElementById('msg').className = `h-5 text-[12px] font-bold mt-1 uppercase ${color}`;
-            
-            updateUI();
-            isRolling = false;
-            document.getElementById('roll-btn').disabled = false;
-        };
+            if(hasTriple && tripleHasSixSeven === 3) checkAchievement('golden_trio');
+            totalRolls++;
 
-        // --- BACKGROUND CANVAS ---
+            // Vampire Chip (Now 5%)
+            if (totalChange < 0) {
+                lossStreak++;
+                if (equippedChips.includes('vampire')) {
+                    totalChange += (bet * 0.05);
+                }
+                // Recycler Chip (Now 100%)
+                if (equippedChips.includes('recycler') && lossStreak >= 5) {
+                    totalChange += (bet * 1.0);
+                    lossStreak = 0;
+                }
+            } else {
+                lossStreak = 0;
+            }
+
+            // Final Apply
+            if (totalChange < 0) {
+                 document.getElementById('main-ui').classList.add('shake');
+                 setTimeout(() => document.getElementById('main-ui').classList.remove('shake'), 300);
+                 if(blindMode) playTone(100, 'sawtooth', 0.5); // Bad sound
+            } else if (blindMode) {
+                playTone(800, 'square', 0.3); // Good sound
+            }
+
+            if (triggerDoN && totalChange > 0 && !(currentGlitch && currentGlitch.id === 'gold_rush')) {
+                document.getElementById('msg').textContent = "DOUBLE OR NOTHING?";
+                document.getElementById('msg').className = "h-5 text-[12px] font-bold mt-1 uppercase text-yellow-400";
+                isRolling = false; 
+                pendingDoN = totalChange; 
+                document.getElementById('don-amount').textContent = `$${Math.floor(pendingDoN).toLocaleString()}`;
+                document.getElementById('btn-take-val').textContent = `$${Math.floor(pendingDoN).toLocaleString()}`;
+                
+                if(!blindMode) document.getElementById('don-screen').classList.remove('hidden');
+                else {
+                    // Auto take in blind mode to avoid softlock UI issues
+                    balance += totalChange;
+                    updateUI();
+                    isRolling = false;
+                    document.getElementById('blind-roll-btn').disabled = false;
+                }
+                playTone(100, 'sawtooth', 0.5);
+            } else {
+                balance += totalChange;
+                if (balance < 0) balance = 0;
+                if(!blindMode) {
+                    document.getElementById('msg').textContent = status;
+                    document.getElementById('msg').className = `h-5 text-[12px] font-bold mt-1 uppercase ${color}`;
+                }
+                updateUI();
+                isRolling = false;
+                document.getElementById('roll-btn').disabled = false;
+                document.getElementById('blind-roll-btn').disabled = false;
+            }
+        }
+
+        document.getElementById('roll-btn').onclick = () => performRoll(false);
+        document.getElementById('blind-roll-btn').onclick = () => performRoll(true);
+
         const canvas = document.getElementById('bg-canvas');
         const ctx = canvas.getContext('2d');
         let pts = [];
@@ -443,8 +1173,10 @@ bgmBtn.onclick = (e) => {
             }));
         }
         function draw() {
-            ctx.fillStyle = '#050505'; ctx.fillRect(0,0,canvas.width,canvas.height);
-            const prim = getComputedStyle(document.documentElement).getPropertyValue('--primary').trim();
+            ctx.clearRect(0,0,canvas.width,canvas.height); // Use clear for transparency handling
+            ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--bg') || '#050505'; 
+            ctx.fillRect(0,0,canvas.width,canvas.height);
+            const prim = getComputedStyle(document.body).getPropertyValue('--primary').trim();
             pts.forEach(p => {
                 p.y -= p.v; if(p.y < -30) p.y = canvas.height + 30;
                 ctx.fillStyle = prim + "22";
@@ -452,6 +1184,12 @@ bgmBtn.onclick = (e) => {
             });
             requestAnimationFrame(draw);
         }
+
+        // Global Loop for Timers
+        setInterval(() => {
+            checkMarketTimer();
+            checkGlitchLoop();
+        }, 1000);
 
         window.addEventListener('resize', init);
         window.onload = () => { loadGame(); init(); draw(); };
