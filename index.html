@@ -2,6 +2,10 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Neon Jackpot 67 - Motherboard Update</title>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -149,6 +153,16 @@
         }
         .chip-slot.occupied { border-style: solid; border-color: var(--secondary); color: var(--secondary); background: rgba(0,255,255,0.1); }
         .chip-slot:hover { border-color: var(--primary); }
+
+        /* Leaderboard Table Styles */
+        .leaderboard-table { width: 100%; border-collapse: collapse; font-size: 10px; }
+        .leaderboard-table th, .leaderboard-table td { padding: 8px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .leaderboard-table th { color: var(--primary); text-transform: uppercase; }
+        
+        #leaderboard-overlay, #name-prompt-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 150;
+            display: flex; justify-content: center; align-items: center;
+        }
     </style>
 </head>
 <body>
@@ -161,6 +175,24 @@
     <div id="notify-popup">
         <div class="text-[10px] uppercase tracking-widest">Achievement Unlocked</div>
         <div id="notify-text" class="text-lg font-black">TITLE HERE</div>
+    </div>
+
+    <div id="name-prompt-overlay" class="hidden">
+        <div class="neon-box text-center">
+            <h2 class="text-2xl font-bold mb-4 text-[#00ffff]">NEW PLAYER DETECTED</h2>
+            <p class="text-xs mb-4 opacity-70">Enter your codename for the Global Leaderboard.</p>
+            <input type="text" id="player-name-input" maxlength="12" placeholder="CODENAME" class="bg-black border border-[#ff00ff] p-2 text-center text-white font-bold outline-none mb-4 w-full">
+            <button onclick="submitName()" class="btn-action w-full py-2 rounded">INITIALIZE</button>
+        </div>
+    </div>
+
+    <div id="leaderboard-overlay" class="hidden">
+        <div class="neon-box w-full max-w-md h-[80vh] flex flex-col relative">
+            <button onclick="toggleLeaderboard()" class="absolute top-4 right-4 text-red-500 font-bold">X</button>
+            <h2 class="text-2xl font-black text-center mb-6 text-[#00ffff]">GLOBAL ELITE</h2>
+            <div id="leaderboard-content" class="overflow-y-auto flex-grow">
+                </div>
+        </div>
     </div>
 
     <div id="system-failure-overlay" class="hidden">
@@ -199,6 +231,30 @@
         </div>
     </div>
 
+    <div id="auth-overlay" class="fixed inset-0 bg-black/95 z-[9999] flex flex-col justify-center items-center font-orbitron">
+        <div class="neon-box w-full max-w-sm text-center">
+            <h2 id="auth-title" class="text-3xl font-black text-[#ff00ff] mb-6 tracking-tighter">IDENTIFY</h2>
+            
+            <p id="auth-error" class="text-red-500 text-xs font-bold mb-4 hidden animate-pulse">ERROR: INVALID CREDENTIALS</p>
+            
+            <div id="register-fields" class="hidden">
+                <input type="text" id="reg-username" placeholder="AGENT NAME" class="w-full bg-black border border-[#00ffff] p-3 mb-2 text-white text-center font-bold outline-none focus:shadow-[0_0_15px_#00ffff]">
+            </div>
+
+            <input type="email" id="auth-email" placeholder="EMAIL ADDRESS" class="w-full bg-black border border-[#ff00ff] p-3 mb-2 text-white text-center font-bold outline-none focus:shadow-[0_0_15px_#ff00ff]">
+            <input type="password" id="auth-pass" placeholder="PASSWORD" class="w-full bg-black border border-[#ff00ff] p-3 mb-6 text-white text-center font-bold outline-none focus:shadow-[0_0_15px_#ff00ff]">
+
+            <button id="btn-login" onclick="handleLogin()" class="w-full bg-[#ff00ff] text-black font-black py-3 mb-2 hover:shadow-[0_0_20px_#ff00ff] transition">LOGIN</button>
+            <button id="btn-register" onclick="handleRegister()" class="hidden w-full bg-[#00ffff] text-black font-black py-3 mb-2 hover:shadow-[0_0_20px_#00ffff] transition">INITIATE NEW USER</button>
+            
+            <p class="text-[10px] text-gray-500 mt-4 cursor-pointer hover:text-white" onclick="toggleAuthMode()">
+                <span id="auth-toggle-text">NO ID? CREATE NEW IDENTITY</span>
+            </p>
+        </div>
+    </div>
+
+    <button onclick="handleLogout()" class="absolute top-2 left-4 text-[10px] text-red-500 border border-red-500/50 px-2 py-0.5 rounded uppercase font-bold hover:bg-red-500 hover:text-black transition z-50">LOGOUT</button>
+
     <div id="main-ui" class="neon-box w-full max-w-md mx-4 h-[720px] flex flex-col relative">
         <button id="bgm-toggle" class="absolute top-2 right-4 text-[10px] opacity-50 hover:opacity-100 border border-white/20 px-2 py-0.5 rounded uppercase font-bold">🔊 BGM: ON</button>
 
@@ -225,6 +281,7 @@
         </div>
 
         <div class="flex gap-2 mb-4">
+            <button onclick="toggleLeaderboard()" class="tab-btn flex-1 py-1 text-[10px] font-bold uppercase border-b-2 border-transparent">Global</button>
             <button onclick="showTab('earn')" id="t-earn" class="tab-btn active flex-1 py-1 text-xs font-bold uppercase">Earn</button>
             <button onclick="showTab('play')" id="t-play" class="tab-btn flex-1 py-1 text-xs font-bold uppercase">Play</button>
             <button onclick="showTab('deck')" id="t-deck" class="tab-btn flex-1 py-1 text-xs font-bold uppercase">Deck</button>
@@ -330,8 +387,29 @@
         </div>
     </div>
 
-    <script>
-        // --- DATA & CONFIG ---
+<script>
+        // --- 1. FIREBASE INITIALIZATION ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyAdUIl8MmKkLh7oIWMbdoubbjBNijPf53M",
+            authDomain: "gamble67-bc212.firebaseapp.com",
+            projectId: "gamble67-bc212",
+            storageBucket: "gamble67-bc212.firebasestorage.app",
+            messagingSenderId: "723343524002",
+            appId: "1:723343524002:web:ccfe28b9369ad108a1d7fb"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth(); // Auth instance
+
+        // --- 2. GLOBAL LEADERBOARD VARIABLES ---
+        let playerName = localStorage.getItem('neon67_playername') || "";
+        let totalClicks = parseInt(localStorage.getItem('neon67_totalclicks')) || 0;
+        let totalMoneyEarned = parseInt(localStorage.getItem('neon67_totalearned')) || 0;
+        let sessionStartTime = Date.now();
+        let totalTimePlayed = parseInt(localStorage.getItem('neon67_totaltime')) || 0;
+
+        // --- 3. EXISTING DATA & CONFIG ---
         const ACHIEVEMENT_DATA = [
             { id: 'first_taste', title: 'First Taste', desc: 'Reach $1,000 Balance' },
             { id: 'millionaire', title: 'Neon Millionaire', desc: 'Reach $1,000,000 Balance' },
@@ -372,7 +450,7 @@
 
         let balance = 0;
         let jackpots = 0;
-        let rollDelay = 2.0;
+        let rollDelay = 1.0;
         let delayPrice = 1000;
         let hasTriple = false;
         let isRolling = false;
@@ -393,7 +471,6 @@
         let glitchNextCheck = 0;
         let currentGlitch = null;
         let glitchEndTime = 0;
-        let zeroGOrb = null; // Element ref
 
         // Stats Tracking
         let totalRolls = 0;
@@ -464,6 +541,9 @@
                 ownedChips, equippedChips, marketNextReset, marketStock
             };
             localStorage.setItem('neon67_v3_save', JSON.stringify(data));
+            localStorage.setItem('neon67_totalearned', totalMoneyEarned);
+            localStorage.setItem('neon67_totalclicks', totalClicks);
+            localStorage.setItem('neon67_totaltime', totalTimePlayed);
         }
 
         function loadGame() {
@@ -500,6 +580,160 @@
             }
         }
         function hardReset() { localStorage.removeItem('neon67_v3_save'); location.reload(); }
+
+        // --- NEW LEADERBOARD FUNCTIONS ---
+        function submitName() {
+            const input = document.getElementById('player-name-input').value.trim();
+            if (input.length >= 2) {
+                playerName = input;
+                localStorage.setItem('neon67_playername', playerName);
+                document.getElementById('name-prompt-overlay').classList.add('hidden');
+                syncLeaderboard(); // Send initial data to server
+            }
+        }
+
+        async function syncLeaderboard() {
+            if (!playerName) return;
+
+            // Calculate current time played
+            const currentSessionSeconds = Math.floor((Date.now() - sessionStartTime) / 1000);
+            const cumulativeTime = totalTimePlayed + currentSessionSeconds;
+
+            try {
+                // This creates or updates a row in the "leaderboard" table for this player
+                await db.collection("leaderboard").doc(playerName).set({
+                    name: playerName,
+                    balance: balance,
+                    totalEarned: totalMoneyEarned,
+                    clicks: totalClicks,
+                    timeSpent: cumulativeTime,
+                    lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+                }, { merge: true });
+            } catch (e) {
+                console.error("Leaderboard Sync Failed:", e);
+            }
+        }
+
+        async function renderLeaderboard() {
+            const content = document.getElementById('leaderboard-content');
+            content.innerHTML = '<p class="text-center animate-pulse">ACCESSING MOTHERBOARD...</p>';
+            
+            try {
+                // Get top 50 players sorted by Total Earned
+                const snapshot = await db.collection("leaderboard")
+                    .orderBy("totalEarned", "desc")
+                    .limit(50)
+                    .get();
+
+                let html = `<table class="leaderboard-table"><thead><tr>
+                            <th>Player</th><th>Earned</th><th>Clicks</th><th>Time</th>
+                            </tr></thead><tbody>`;
+
+                snapshot.forEach(doc => {
+                    const d = doc.data();
+                    const mins = Math.floor(d.timeSpent / 60);
+                    html += `<tr>
+                        <td class="font-bold">${d.name}</td>
+                        <td class="text-green-400">$${Math.floor(d.totalEarned).toLocaleString()}</td>
+                        <td>${d.clicks}</td>
+                        <td>${mins}m</td>
+                    </tr>`;
+                });
+                content.innerHTML = html + `</tbody></table>`;
+            } catch (e) {
+                content.innerHTML = '<p class="text-red-500">DATABASE OFFLINE</p>';
+            }
+        }
+
+        function toggleLeaderboard() {
+            const overlay = document.getElementById('leaderboard-overlay');
+            overlay.classList.toggle('hidden');
+            if (!overlay.classList.contains('hidden')) renderLeaderboard();
+        }
+
+        // --- AUTH FUNCTIONS (MISSING FIXED) ---
+        let isRegistering = false;
+
+        function toggleAuthMode() {
+            isRegistering = !isRegistering;
+            const regFields = document.getElementById('register-fields');
+            const btnLogin = document.getElementById('btn-login');
+            const btnReg = document.getElementById('btn-register');
+            const toggleText = document.getElementById('auth-toggle-text');
+            const title = document.getElementById('auth-title');
+
+            if (isRegistering) {
+                regFields.classList.remove('hidden');
+                btnLogin.classList.add('hidden');
+                btnReg.classList.remove('hidden');
+                toggleText.textContent = "ALREADY AN AGENT? LOGIN";
+                title.textContent = "INITIATE";
+            } else {
+                regFields.classList.add('hidden');
+                btnLogin.classList.remove('hidden');
+                btnReg.classList.add('hidden');
+                toggleText.textContent = "NO ID? CREATE NEW IDENTITY";
+                title.textContent = "IDENTIFY";
+            }
+        }
+
+        async function handleLogin() {
+            const email = document.getElementById('auth-email').value;
+            const pass = document.getElementById('auth-pass').value;
+            const err = document.getElementById('auth-error');
+
+            try {
+                await auth.signInWithEmailAndPassword(email, pass);
+                document.getElementById('auth-overlay').classList.add('hidden');
+                err.classList.add('hidden');
+            } catch (error) {
+                console.error(error);
+                err.textContent = "ERROR: " + error.message;
+                err.classList.remove('hidden');
+            }
+        }
+
+        async function handleRegister() {
+            const email = document.getElementById('auth-email').value;
+            const pass = document.getElementById('auth-pass').value;
+            const username = document.getElementById('reg-username').value;
+            const err = document.getElementById('auth-error');
+
+            if(username.length < 2) {
+                err.textContent = "INVALID USERNAME";
+                err.classList.remove('hidden');
+                return;
+            }
+
+            try {
+                const cred = await auth.createUserWithEmailAndPassword(email, pass);
+                // Save name immediately
+                playerName = username;
+                localStorage.setItem('neon67_playername', playerName);
+                
+                // Init in DB
+                await db.collection("leaderboard").doc(playerName).set({
+                    name: playerName,
+                    balance: 0,
+                    totalEarned: 0,
+                    clicks: 0,
+                    timeSpent: 0,
+                    uid: cred.user.uid
+                });
+
+                document.getElementById('auth-overlay').classList.add('hidden');
+                err.classList.add('hidden');
+            } catch (error) {
+                console.error(error);
+                err.textContent = "ERROR: " + error.message;
+                err.classList.remove('hidden');
+            }
+        }
+
+        async function handleLogout() {
+            await auth.signOut();
+            location.reload();
+        }
 
         // --- ACHIEVEMENT LOGIC ---
         function checkAchievement(id) {
@@ -672,13 +906,10 @@
             
             // Timer Logic
             if (!currentGlitch && now >= glitchNextCheck) {
-                // 25% Chance Nothing, 75% Glitch (Changed from 60%)
                 if (Math.random() > 0.25) {
-                    // Pick Weighted Glitch? For now random
                     const g = GLITCH_DB[Math.floor(Math.random() * GLITCH_DB.length)];
                     activateGlitch(g);
                 } else {
-                    // No event, reset timer
                     glitchNextCheck = now + 300000; // 5 mins
                 }
             }
@@ -705,7 +936,6 @@
             currentGlitch = g;
             glitchEndTime = Date.now() + (g.duration * 1000);
             
-            // Visuals
             const banner = document.getElementById('glitch-banner');
             banner.textContent = `⚠️ WARNING: ${g.name} ACTIVE ⚠️`;
             banner.classList.remove('hidden');
@@ -775,19 +1005,17 @@
 
         // --- ACTIONS ---
         document.getElementById('clicker').onclick = () => {
+            totalClicks++; 
+            localStorage.setItem('neon67_totalclicks', totalClicks);
+            
             let gain = (1 + (jackpots * 2));
             
-            // Magnet Chip Synergy
-            if (equippedChips.includes('magnet')) {
-                gain *= 1.25;
-            }
-
-            // Gold Rush Glitch
-            if (currentGlitch && currentGlitch.id === 'gold_rush') {
-                gain *= 2;
-            }
+            if (equippedChips.includes('magnet')) gain *= 1.25;
+            if (currentGlitch && currentGlitch.id === 'gold_rush') gain *= 2;
 
             balance += gain;
+            totalMoneyEarned += gain; 
+            
             playTone(600, 'square', 0.05, 0.05);
             updateUI();
         };
@@ -848,7 +1076,7 @@
             }
             
             document.body.className = ''; 
-            if (currentGlitch && currentGlitch.id === 'blood_moon') document.body.classList.add('glitch-blood-moon'); // Preserve glitch
+            if (currentGlitch && currentGlitch.id === 'blood_moon') document.body.classList.add('glitch-blood-moon'); 
             if (currentGlitch && currentGlitch.id === 'matrix') document.body.classList.add('glitch-matrix');
             
             if(name === 'Joker') document.body.classList.add('skin-joker');
@@ -875,6 +1103,7 @@
         function resolveDoN(gamble) {
             if (!gamble) {
                 balance += pendingDoN;
+                totalMoneyEarned += pendingDoN; 
                 donStreak = 0;
                 document.getElementById('don-screen').classList.add('hidden');
                 updateUI();
@@ -885,13 +1114,13 @@
                 if (win) {
                     pendingDoN *= 2;
                     donStreak++;
-                    if(donStreak >= 3) checkAchievement('diamond_hands');
+                    if (donStreak >= 3) checkAchievement('diamond_hands');
                     playTone(800, 'square', 0.2);
                     document.getElementById('don-amount').textContent = `$${Math.floor(pendingDoN).toLocaleString()}`;
                     document.getElementById('btn-take-val').textContent = `$${Math.floor(pendingDoN).toLocaleString()}`;
                 } else {
-                    if(pendingDoN > 50000) checkAchievement('greed');
-                    playTone(100, 'sawtooth', 0.5); 
+                    if (pendingDoN > 50000) checkAchievement('greed');
+                    playTone(100, 'sawtooth', 0.5);
                     pendingDoN = 0;
                     donStreak = 0;
                     document.getElementById('don-screen').classList.add('hidden');
@@ -902,7 +1131,6 @@
         }
 
         // --- GAME LOGIC ---
-        
         async function performRoll(blind = false) {
             if (isRolling) return;
             const betInput = document.getElementById('bet-input');
@@ -914,7 +1142,6 @@
                 return;
             }
 
-            // Apply Overclock Cost (Now 20%)
             if(equippedChips.includes('overclock')) bet = Math.floor(bet * 1.2);
             if(bet > balance) { betInput.classList.add('shake'); return; }
 
@@ -926,20 +1153,14 @@
             disp.classList.remove('jackpot-anim');
             document.getElementById('main-ui').classList.remove('shake');
 
-            // Magnet Visual Effect
             if(equippedChips.includes('magnet')) disp.style.transform = "scale(1.1)";
             else disp.style.transform = "scale(1)";
 
-            // Speed
             let speed = rollDelay * 1000;
             if (equippedChips.includes('overclock')) speed /= 2;
-            
-            // Zero Gravity Slowdown
             if (currentGlitch && currentGlitch.id === 'zero_gravity') speed *= 4;
 
-            // Blind Mode (System Failure)
             if (blind) {
-                // Audio Shuffle cues
                 let loops = 0;
                 let shuff = setInterval(() => {
                     playTone(200, 'sine', 0.05, 0.02);
@@ -949,7 +1170,6 @@
                 return;
             }
 
-            // Normal Visual Shuffle
             let shuffle = setInterval(() => {
                 disp.textContent = Math.floor(Math.random()*100).toString().padStart(2,'0');
                 playTone(200, 'sine', 0.05, 0.02);
@@ -961,19 +1181,15 @@
             finishRollLogic(bet, false);
         }
 
-        // Logic split from animation for Zero Gravity / Blind handling
         function finishRollLogic(bet, blindMode) {
-            // RNG Generation with Chip Modifiers
             const generateNum = () => {
                 let r = Math.floor(Math.random()*100);
-                // Lucky 7 Chip: if 0-9, make it 7 sometimes? No, prompt says slightly more chance.
                 if (equippedChips.includes('lucky_seven') && Math.random() < 0.05) r = 7; 
                 return r;
             }
 
             const rolls = hasTriple ? [0,0,0].map(() => generateNum()) : [generateNum()];
             
-            // Zero Gravity Intercept
             if (currentGlitch && currentGlitch.id === 'zero_gravity') {
                 spawnZeroGOrb(rolls, bet);
                 return;
@@ -1002,9 +1218,9 @@
 
         function displayResults(rolls, bet, blindMode) {
             const disp = document.getElementById('num-display');
-            
+
             if (!blindMode) {
-                disp.textContent = rolls.map(r => r.toString().padStart(2,'0')).join(" | ");
+                disp.textContent = rolls.map(r => r.toString().padStart(2, '0')).join(" | ");
                 disp.style.fontSize = hasTriple ? "1.8rem" : "3.75rem";
             }
 
@@ -1015,46 +1231,51 @@
             let tripleHasSixSeven = 0;
 
             rolls.forEach(res => {
-                const s = res.toString().padStart(2,'0');
-                let mult = -1.0; 
+                const s = res.toString().padStart(2, '0');
+                let mult = -1.0;
 
-                // --- GLITCH OVERRIDES ---
                 if (currentGlitch && currentGlitch.id === 'blood_moon') {
-                    // High risk high reward
-                    if (res === 67) { mult = 67 * 4; }
-                    else if ([0, 99].includes(res)) {
-                        hardReset(); // WIPE SAVE
-                        return; 
+                    if (res === 67) {
+                        mult = 67 * 4;
+                    } else if ([0, 99].includes(res)) {
+                        hardReset(); 
+                        return;
                     } else if (mult > 0) mult *= 4;
                 }
-                
+
                 if (currentGlitch && currentGlitch.id === 'gold_rush') {
-                    if (mult < 0) mult = 0; // No loss
+                    if (mult < 0) mult = 0; 
                     else mult *= 2;
                 }
 
-                // --- STANDARD LOGIC ---
-                if(res === 67) { 
-                    mult = 67; jackpots++; status = "JACKPOT!"; color = "text-yellow-400";
+                if (res === 67) {
+                    mult = 67;
+                    jackpots++;
+                    status = "JACKPOT!";
+                    color = "text-yellow-400";
                     triggerDoN = true;
-                    if(totalRolls === 0) checkAchievement('the_chosen_one');
-                    if(currentTitle.name === 'NO TITLE') checkAchievement('pure_skill');
-                    if(balance - bet < 10) checkAchievement('miracle');
+                    if (totalRolls === 0) checkAchievement('the_chosen_one');
+                    if (currentTitle.name === 'NO TITLE') checkAchievement('pure_skill');
+                    if (balance - bet < 10) checkAchievement('miracle');
                 } else if ([6, 7, 60, 70].includes(res)) {
-                    mult = 2; status = "WIN X2"; color = "neon-text-blue";
+                    mult = 2;
+                    status = "WIN X2";
+                    color = "neon-text-blue";
                 } else if (s.includes('6') || s.includes('7')) {
-                    mult = 1.2; if(status !== "WIN X2" && status !== "JACKPOT!") { status = "WIN X1.2"; color = "neon-text-pink"; }
+                    mult = 1.2;
+                    if (status !== "WIN X2" && status !== "JACKPOT!") {
+                        status = "WIN X1.2";
+                        color = "neon-text-pink";
+                    }
                 } else if ([0, 99].includes(res)) {
-                    // Penalty
                     let penalty = -10;
-                    
-                    // Stabilizer Chip (Now -5x)
-                    if(equippedChips.includes('stabilizer')) penalty = -5;
+                    if (equippedChips.includes('stabilizer')) penalty = -5;
 
-                    // Firewall Chip (Now 50 rolls cooldown)
-                    if(equippedChips.includes('firewall')) {
+                    if (equippedChips.includes('firewall')) {
                         if (firewallCounter >= 50) {
-                            penalty = 0; status = "BLOCKED"; color = "text-blue-500";
+                            penalty = 0;
+                            status = "BLOCKED";
+                            color = "text-blue-500";
                             firewallCounter = 0;
                         } else {
                             firewallCounter++;
@@ -1064,53 +1285,46 @@
                     }
 
                     mult = penalty;
-                    status = "PENALTY!"; color = "text-red-600";
-                    
+                    status = "PENALTY!";
+                    color = "text-red-600";
+
                     const now = Date.now();
                     penaltyTimestamps.push(now);
-                    penaltyTimestamps = penaltyTimestamps.filter(t => now - t < 60000); 
-                    if(penaltyTimestamps.length >= 3) checkAchievement('hohin');
+                    penaltyTimestamps = penaltyTimestamps.filter(t => now - t < 60000);
+                    if (penaltyTimestamps.length >= 3) checkAchievement('hohin');
                 }
 
-                // --- MATRIX INVERSION LOGIC ---
                 if (currentGlitch && currentGlitch.id === 'matrix') {
                     mult *= -1;
-                    if (mult > 0) { 
-                        status = "MATRIX WIN"; 
-                        color = "glitch-matrix"; // reusing class as color hook
-                        // If it was a penalty (-10) it is now +10
+                    if (mult > 0) {
+                        status = "MATRIX WIN";
+                        color = "glitch-matrix";
                     } else {
                         status = "MATRIX LOSS";
                         color = "text-red-500";
-                        // If it was a jackpot (67) it is now -67
                         if (res === 67) triggerDoN = false;
                     }
                 }
 
-                if(hasTriple && (s.includes('6') || s.includes('7'))) tripleHasSixSeven++;
-                
+                if (hasTriple && (s.includes('6') || s.includes('7'))) tripleHasSixSeven++;
+
                 let effectiveMult = mult;
                 if (mult > 0) effectiveMult = mult * currentTitle.mult;
 
-                // Greed Core Chip (Now +15% Win)
                 if (equippedChips.includes('greed_core')) {
                     if (effectiveMult > 0) effectiveMult *= 1.15;
-                    else effectiveMult *= 1.1; // Bigger loss too
+                    else effectiveMult *= 1.1;
                 }
 
                 totalChange += (bet * effectiveMult);
             });
 
-            if(hasTriple && tripleHasSixSeven === 3) checkAchievement('golden_trio');
+            if (hasTriple && tripleHasSixSeven === 3) checkAchievement('golden_trio');
             totalRolls++;
 
-            // Vampire Chip (Now 5%)
             if (totalChange < 0) {
                 lossStreak++;
-                if (equippedChips.includes('vampire')) {
-                    totalChange += (bet * 0.05);
-                }
-                // Recycler Chip (Now 100%)
+                if (equippedChips.includes('vampire')) totalChange += (bet * 0.05);
                 if (equippedChips.includes('recycler') && lossStreak >= 5) {
                     totalChange += (bet * 1.0);
                     lossStreak = 0;
@@ -1119,27 +1333,26 @@
                 lossStreak = 0;
             }
 
-            // Final Apply
             if (totalChange < 0) {
                  document.getElementById('main-ui').classList.add('shake');
                  setTimeout(() => document.getElementById('main-ui').classList.remove('shake'), 300);
-                 if(blindMode) playTone(100, 'sawtooth', 0.5); // Bad sound
+                 if(blindMode) playTone(100, 'sawtooth', 0.5); 
             } else if (blindMode) {
-                playTone(800, 'square', 0.3); // Good sound
+                playTone(800, 'square', 0.3);
             }
 
             if (triggerDoN && totalChange > 0 && !(currentGlitch && currentGlitch.id === 'gold_rush')) {
                 document.getElementById('msg').textContent = "DOUBLE OR NOTHING?";
                 document.getElementById('msg').className = "h-5 text-[12px] font-bold mt-1 uppercase text-yellow-400";
-                isRolling = false; 
-                pendingDoN = totalChange; 
+                isRolling = false;
+                pendingDoN = totalChange;
                 document.getElementById('don-amount').textContent = `$${Math.floor(pendingDoN).toLocaleString()}`;
                 document.getElementById('btn-take-val').textContent = `$${Math.floor(pendingDoN).toLocaleString()}`;
-                
-                if(!blindMode) document.getElementById('don-screen').classList.remove('hidden');
+
+                if (!blindMode) document.getElementById('don-screen').classList.remove('hidden');
                 else {
-                    // Auto take in blind mode to avoid softlock UI issues
                     balance += totalChange;
+                    totalMoneyEarned += totalChange; 
                     updateUI();
                     isRolling = false;
                     document.getElementById('blind-roll-btn').disabled = false;
@@ -1148,7 +1361,10 @@
             } else {
                 balance += totalChange;
                 if (balance < 0) balance = 0;
-                if(!blindMode) {
+
+                if (totalChange > 0) totalMoneyEarned += totalChange;
+
+                if (!blindMode) {
                     document.getElementById('msg').textContent = status;
                     document.getElementById('msg').className = `h-5 text-[12px] font-bold mt-1 uppercase ${color}`;
                 }
@@ -1173,7 +1389,7 @@
             }));
         }
         function draw() {
-            ctx.clearRect(0,0,canvas.width,canvas.height); // Use clear for transparency handling
+            ctx.clearRect(0,0,canvas.width,canvas.height); 
             ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--bg') || '#050505'; 
             ctx.fillRect(0,0,canvas.width,canvas.height);
             const prim = getComputedStyle(document.body).getPropertyValue('--primary').trim();
@@ -1185,14 +1401,45 @@
             requestAnimationFrame(draw);
         }
 
-        // Global Loop for Timers
         setInterval(() => {
             checkMarketTimer();
             checkGlitchLoop();
+            syncLeaderboard();
         }, 1000);
 
         window.addEventListener('resize', init);
-        window.onload = () => { loadGame(); init(); draw(); };
+        
+        // --- BOOT SEQUENCE CORRECTED ---
+        window.onload = () => {
+            loadGame(); 
+            init(); 
+            draw();
+
+            // Firebase Auth State Listener
+            auth.onAuthStateChanged(user => {
+                if (user) {
+                    // User is logged in
+                    document.getElementById('auth-overlay').classList.add('hidden');
+                    console.log("Logged in as:", user.email);
+                    
+                    // If no local name but logged in, try to fetch from DB or prompt
+                    if (!playerName) {
+                        db.collection('leaderboard').where('uid', '==', user.uid).get().then(snap => {
+                            if(!snap.empty) {
+                                playerName = snap.docs[0].data().name;
+                                localStorage.setItem('neon67_playername', playerName);
+                            } else {
+                                // Fallback if DB entry missing
+                                document.getElementById('name-prompt-overlay').classList.remove('hidden');
+                            }
+                        });
+                    }
+                } else {
+                    // Not logged in -> Show Auth Overlay
+                    document.getElementById('auth-overlay').classList.remove('hidden');
+                }
+            });
+        };
     </script>
 </body>
 </html>
