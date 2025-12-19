@@ -6,7 +6,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Neon Jackpot 67 - Cloud Save Enabled</title>
+    <title>Neon Jackpot 67 - Alchemy Update</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
@@ -88,7 +88,7 @@
         .shake { animation: shake 0.3s cubic-bezier(.36,.07,.19,.97) both; }
         @keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } 40%, 60% { transform: translate3d(4px, 0, 0); } }
 
-        .shop-item, .ach-item, .chip-item {
+        .shop-item, .ach-item, .chip-item, .potion-item {
             background: rgba(255,255,255,0.05);
             border-radius: 10px;
             padding: 10px;
@@ -98,7 +98,7 @@
         .ach-item.locked { opacity: 0.5; filter: grayscale(1); }
         .ach-item.unlocked { border-color: var(--primary); background: rgba(255,255,255,0.1); }
 
-        #win-screen, #don-screen, #system-failure-overlay {
+        #win-screen, #don-screen, #system-failure-overlay, #potion-menu-overlay {
             position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 100;
             display: flex; flex-direction: column; justify-content: center; align-items: center;
         }
@@ -161,6 +161,26 @@
             position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 150;
             display: flex; justify-content: center; align-items: center;
         }
+
+        /* Potion Styles */
+        .progress-bar-container {
+            width: 100%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; margin-top: 10px;
+        }
+        .progress-bar-fill {
+            height: 100%; background: var(--secondary); width: 0%; transition: width 0.2s;
+            box-shadow: 0 0 10px var(--secondary);
+        }
+        .active-potion-badge {
+            font-size: 9px; padding: 2px 6px; border-radius: 4px; margin-right: 4px; 
+            border: 1px solid rgba(255,255,255,0.2); display: inline-flex; align-items: center; gap: 4px;
+        }
+        .potion-grid {
+            display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;
+        }
+        .rarity-t1 { color: #fff; border-color: #fff; }
+        .rarity-t2 { color: #00ffff; border-color: #00ffff; }
+        .rarity-t3 { color: #ff00ff; border-color: #ff00ff; }
+        .rarity-legendary { color: #ffd700; border-color: #ffd700; animation: pulse 1s infinite; }
     </style>
 </head>
 <body>
@@ -188,8 +208,32 @@
         <div class="neon-box w-full max-w-md h-[80vh] flex flex-col relative">
             <button onclick="toggleLeaderboard()" class="absolute top-4 right-4 text-red-500 font-bold">X</button>
             <h2 class="text-2xl font-black text-center mb-6 text-[#00ffff]">GLOBAL ELITE</h2>
-            <div id="leaderboard-content" class="overflow-y-auto flex-grow">
+            <div id="leaderboard-content" class="overflow-y-auto flex-grow"></div>
+        </div>
+    </div>
+
+    <div id="potion-menu-overlay" class="hidden">
+        <div class="neon-box w-full max-w-md h-[80vh] flex flex-col relative">
+            <button onclick="togglePotionMenu()" class="absolute top-4 right-4 text-red-500 font-bold">X</button>
+            <h2 class="text-2xl font-black text-center mb-2 text-[#00ffff]">ALCHEMY LAB</h2>
+            
+            <div class="flex gap-2 mb-4 border-b border-white/10 pb-2">
+                <button onclick="showPotionTab('inv')" id="pt-inv" class="flex-1 py-1 text-xs font-bold uppercase text-[#00ffff]">Inventory</button>
+                <button onclick="showPotionTab('shop')" id="pt-shop" class="flex-1 py-1 text-xs font-bold uppercase opacity-50">Market</button>
+            </div>
+
+            <div id="potion-view-inv" class="flex-grow overflow-y-auto pr-2">
+                <p class="text-[10px] opacity-50 uppercase mb-2">My Brews (Duration: 5m)</p>
+                <div id="potion-inventory-grid" class="potion-grid"></div>
+            </div>
+
+            <div id="potion-view-shop" class="hidden flex-grow overflow-y-auto pr-2">
+                <div class="flex justify-between items-center mb-4">
+                    <p class="text-[10px] opacity-50 uppercase">Shady Dealer</p>
+                    <p id="potion-shop-timer" class="text-[10px] text-yellow-400 font-mono">00:00</p>
                 </div>
+                <div id="potion-shop-grid" class="space-y-2"></div>
+            </div>
         </div>
     </div>
 
@@ -197,7 +241,7 @@
         <h1 class="text-6xl font-black text-white mb-4 tracking-tighter">SYSTEM FAILURE</h1>
         <p class="text-sm opacity-50 uppercase tracking-widest mb-8">Video Output: Offline</p>
         <div class="animate-pulse text-red-500 font-bold">AUDIO SENSORS ONLY</div>
-        <button id="blind-roll-btn" class="mt-12 border border-white px-8 py-4 rounded hover:bg-white hover:text-black transition uppercase font-bold">BLIND ROLL</button>
+        <button id="blind-roll-btn" onclick="performRoll(true)" class="mt-12 border border-white px-8 py-4 rounded hover:bg-white hover:text-black transition uppercase font-bold">BLIND ROLL</button>
     </div>
 
     <div id="zero-g-container" class="fixed inset-0 pointer-events-none z-40 hidden"></div>
@@ -213,19 +257,13 @@
     <div id="don-screen" class="hidden">
         <h1 class="text-3xl font-black mb-2 uppercase text-yellow-400">Double or Nothing?</h1>
         <p class="text-xs opacity-60 mb-8 tracking-widest">A 67 WAS ROLLED. RISK IT ALL.</p>
-        
         <div class="text-center mb-8">
             <p class="text-xs uppercase opacity-50">Pending Win</p>
             <p id="don-amount" class="text-6xl font-black text-white">$0</p>
         </div>
-
         <div class="flex gap-4">
-            <button onclick="resolveDoN(false)" class="bg-gray-800 border border-white/20 text-white px-6 py-4 rounded font-bold hover:bg-gray-700 transition">
-                TAKE <span id="btn-take-val">$0</span>
-            </button>
-            <button onclick="resolveDoN(true)" class="btn-action bg-red-600 !text-white !box-shadow-red px-6 py-4 rounded font-bold text-xl animate-pulse">
-                DOUBLE IT 🎲
-            </button>
+            <button onclick="resolveDoN(false)" class="bg-gray-800 border border-white/20 text-white px-6 py-4 rounded font-bold hover:bg-gray-700 transition">TAKE <span id="btn-take-val">$0</span></button>
+            <button onclick="resolveDoN(true)" class="btn-action bg-red-600 !text-white !box-shadow-red px-6 py-4 rounded font-bold text-xl animate-pulse">DOUBLE IT 🎲</button>
         </div>
     </div>
 
@@ -233,33 +271,28 @@
         <div class="neon-box w-full max-w-sm text-center">
             <h2 id="auth-title" class="text-3xl font-black text-[#ff00ff] mb-6 tracking-tighter">IDENTIFY</h2>
             <p id="auth-error" class="text-red-500 text-xs font-bold mb-4 hidden animate-pulse">ERROR: INVALID CREDENTIALS</p>
-            
             <div id="register-fields" class="hidden">
                 <input type="text" id="reg-username" placeholder="AGENT NAME" class="w-full bg-black border border-[#00ffff] p-3 mb-2 text-white text-center font-bold outline-none focus:shadow-[0_0_15px_#00ffff]">
             </div>
-
             <input type="email" id="auth-email" placeholder="EMAIL ADDRESS" class="w-full bg-black border border-[#ff00ff] p-3 mb-2 text-white text-center font-bold outline-none focus:shadow-[0_0_15px_#ff00ff]">
             <input type="password" id="auth-pass" placeholder="PASSWORD" class="w-full bg-black border border-[#ff00ff] p-3 mb-6 text-white text-center font-bold outline-none focus:shadow-[0_0_15px_#ff00ff]">
-
             <button id="btn-login" onclick="handleLogin()" class="w-full bg-[#ff00ff] text-black font-black py-3 mb-2 hover:shadow-[0_0_20px_#ff00ff] transition">LOGIN</button>
             <button id="btn-register" onclick="handleRegister()" class="hidden w-full bg-[#00ffff] text-black font-black py-3 mb-2 hover:shadow-[0_0_20px_#00ffff] transition">INITIATE NEW USER</button>
-            
-            <p class="text-[10px] text-gray-500 mt-4 cursor-pointer hover:text-white" onclick="toggleAuthMode()">
-                <span id="auth-toggle-text">NO ID? CREATE NEW IDENTITY</span>
-            </p>
+            <p class="text-[10px] text-gray-500 mt-4 cursor-pointer hover:text-white" onclick="toggleAuthMode()"><span id="auth-toggle-text">NO ID? CREATE NEW IDENTITY</span></p>
         </div>
     </div>
 
     <button onclick="handleLogout()" class="absolute top-2 left-4 text-[10px] text-red-500 border border-red-500/50 px-2 py-0.5 rounded uppercase font-bold hover:bg-red-500 hover:text-black transition z-50">LOGOUT</button>
+    <button onclick="togglePotionMenu()" class="absolute top-2 left-24 text-[10px] text-[#00ffff] border border-[#00ffff]/50 px-2 py-0.5 rounded uppercase font-bold hover:bg-[#00ffff] hover:text-black transition z-50">🧪 POTIONS</button>
 
     <div id="main-ui" class="neon-box w-full max-w-md mx-4 h-[720px] flex flex-col relative">
         <button id="bgm-toggle" class="absolute top-2 right-4 text-[10px] opacity-50 hover:opacity-100 border border-white/20 px-2 py-0.5 rounded uppercase font-bold">🔊 BGM: ON</button>
 
-        <div id="glitch-banner" class="hidden absolute top-0 left-0 right-0 bg-red-600 text-black text-center text-[10px] font-bold py-1 uppercase animate-pulse rounded-t-lg z-10">
-            ⚠️ WARNING: BLOOD MOON ACTIVE ⚠️
-        </div>
+        <div id="glitch-banner" class="hidden absolute top-0 left-0 right-0 bg-red-600 text-black text-center text-[10px] font-bold py-1 uppercase animate-pulse rounded-t-lg z-10">⚠️ WARNING: BLOOD MOON ACTIVE ⚠️</div>
 
-        <div class="flex justify-between items-end mb-4 border-b border-white/10 pb-2 mt-4">
+        <div id="active-potions-bar" class="absolute top-8 left-4 right-4 flex gap-1 justify-center pointer-events-none z-20"></div>
+
+        <div class="flex justify-between items-end mb-4 border-b border-white/10 pb-2 mt-8">
             <div>
                 <p class="text-[10px] uppercase opacity-60">Balance</p>
                 <p id="balance" class="text-2xl font-black neon-text-blue">$0</p>
@@ -272,9 +305,7 @@
 
         <div class="mb-4 text-center">
             <p class="text-[8px] uppercase opacity-40 mb-1">Current Title</p>
-            <div id="current-title-box" class="text-[10px] font-bold py-1 px-3 border border-white/20 rounded inline-block bg-white/5">
-                NO TITLE <span class="opacity-40 ml-2">(1.0x)</span>
-            </div>
+            <div id="current-title-box" class="text-[10px] font-bold py-1 px-3 border border-white/20 rounded inline-block bg-white/5">NO TITLE <span class="opacity-40 ml-2">(1.0x)</span></div>
         </div>
 
         <div class="flex gap-2 mb-4">
@@ -308,7 +339,18 @@
                     <div id="num-display" class="text-6xl font-black neon-text-pink h-16 flex items-center justify-center tracking-tighter">00</div>
                     <div id="msg" class="h-5 text-[12px] font-bold mt-1 uppercase"></div>
                 </div>
-                <button id="roll-btn" class="btn-action w-full py-4 rounded-lg text-xl mb-4">ROLL</button>
+                <button id="roll-btn" onclick="performRoll()" class="btn-action w-full py-4 rounded-lg text-xl mb-2">ROLL</button>
+                
+                <div class="mb-4">
+                    <div class="flex justify-between text-[9px] uppercase opacity-60">
+                        <span>Potion Drop</span>
+                        <span id="drop-text">0/50</span>
+                    </div>
+                    <div class="progress-bar-container">
+                        <div id="potion-progress-bar" class="progress-bar-fill"></div>
+                    </div>
+                </div>
+
                 <div class="grid grid-cols-2 gap-1 text-[9px] text-left">
                     <div class="p-2 border border-white/5 rounded">67: <span class="text-yellow-400 font-bold">x67 + DoN</span></div>
                     <div class="p-2 border border-white/5 rounded">6,7,60,70: <span class="neon-text-blue font-bold">x2</span></div>
@@ -381,7 +423,6 @@
             messagingSenderId: "723343524002",
             appId: "1:723343524002:web:ccfe28b9369ad108a1d7fb"
         };
-
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
         const auth = firebase.auth();
@@ -394,6 +435,31 @@
         let totalTimePlayed = parseInt(localStorage.getItem('neon67_totaltime')) || 0;
 
         // --- 3. DATA & CONFIG ---
+        const POTION_DB = {
+            'luck_1': { name: 'Luck Serum I', desc: '1.2x Chance for 6 & 7', type: 'Luck', tier: 1, color: '#32cd32' },
+            'luck_2': { name: 'Luck Serum II', desc: '1.5x Chance for 6 & 7', type: 'Luck', tier: 2, color: '#00ff00' },
+            'luck_3': { name: 'Luck Serum III', desc: '2x Chance for 6 & 7', type: 'Luck', tier: 3, color: '#adff2f' },
+            'money_1': { name: 'Midas Brew I', desc: '1.5x Earnings', type: 'Money', tier: 1, color: '#ffd700' },
+            'money_2': { name: 'Midas Brew II', desc: '2x Earnings', type: 'Money', tier: 2, color: '#ffec8b' },
+            'money_3': { name: 'Midas Brew III', desc: '3x Earnings', type: 'Money', tier: 3, color: '#fffacd' },
+            'speed_1': { name: 'Velocity Vial I', desc: '+15% Roll Speed', type: 'Speed', tier: 1, color: '#00bfff' },
+            'speed_2': { name: 'Velocity Vial II', desc: '+35% Roll Speed', type: 'Speed', tier: 2, color: '#1e90ff' },
+            'speed_3': { name: 'Velocity Vial III', desc: '+75% Roll Speed', type: 'Speed', tier: 3, color: '#0000ff' },
+            'god_67': { name: 'Liquid 67', desc: '5x Luck, 10x Money, +200% Speed', type: 'Legendary', tier: 4, color: '#ff00ff' }
+        };
+
+        const CHIP_DB = [
+            { id: 'firewall', name: 'Firewall', desc: 'Block one 0/99 penalty every 50 rolls', price: 10000, color: '#3b82f6' },
+            { id: 'overclock', name: 'Overclock', desc: '2x Speed, but Betting costs +20%', price: 12000, color: '#ef4444' },
+            { id: 'magnet', name: 'Magnet', desc: 'Numbers 6 & 7 larger. Click Power x1.25', price: 15000, color: '#eab308' },
+            { id: 'vampire', name: 'Vampire', desc: 'Recover 5% of bet on Loss', price: 18000, color: '#a855f7' },
+            { id: 'stabilizer', name: 'Stabilizer', desc: 'Penalty is -5x instead of -10x', price: 11000, color: '#10b981' },
+            { id: 'recycler', name: 'Recycler', desc: 'Refund 100% bet on 5th consecutive loss', price: 14000, color: '#14b8a6' },
+            { id: 'lucky_seven', name: 'Lucky 7', desc: 'Slightly higher chance for 7s', price: 25000, color: '#f97316' },
+            { id: 'greed_core', name: 'Greed Core', desc: 'Win 15% more, Lose 10% more', price: 20000, color: '#f43f5e' },
+            { id: 'alchemist', name: 'Alchemist', desc: 'Potions drop every 35 rolls instead of 50', price: 30000, color: '#9333ea' }
+        ];
+
         const ACHIEVEMENT_DATA = [
             { id: 'first_taste', title: 'First Taste', desc: 'Reach $1,000 Balance' },
             { id: 'millionaire', title: 'Neon Millionaire', desc: 'Reach $1,000,000 Balance' },
@@ -413,17 +479,6 @@
             { id: 'rgb_god', title: 'Completionist', desc: 'Unlock all other Achievements (Unlocks Rainbow Skin)' }
         ];
 
-        const CHIP_DB = [
-            { id: 'firewall', name: 'Firewall', desc: 'Block one 0/99 penalty every 50 rolls', price: 10000, color: '#3b82f6' },
-            { id: 'overclock', name: 'Overclock', desc: '2x Speed, but Betting costs +20%', price: 12000, color: '#ef4444' },
-            { id: 'magnet', name: 'Magnet', desc: 'Numbers 6 & 7 larger. Click Power x1.25', price: 15000, color: '#eab308' },
-            { id: 'vampire', name: 'Vampire', desc: 'Recover 5% of bet on Loss', price: 18000, color: '#a855f7' },
-            { id: 'stabilizer', name: 'Stabilizer', desc: 'Penalty is -5x instead of -10x', price: 11000, color: '#10b981' },
-            { id: 'recycler', name: 'Recycler', desc: 'Refund 100% bet on 5th consecutive loss', price: 14000, color: '#14b8a6' },
-            { id: 'lucky_seven', name: 'Lucky 7', desc: 'Slightly higher chance for 7s', price: 25000, color: '#f97316' },
-            { id: 'greed_core', name: 'Greed Core', desc: 'Win 15% more, Lose 10% more', price: 20000, color: '#f43f5e' }
-        ];
-
         const GLITCH_DB = [
             { id: 'blood_moon', name: 'Blood Moon', duration: 30, chance: 0.15, desc: 'Wins x4. Losses on 0/99 WIPE SAVE.' },
             { id: 'zero_gravity', name: 'Zero Gravity', duration: 30, chance: 0.2, desc: 'Floating Results. Catch them. Slow Motion.' },
@@ -434,7 +489,7 @@
 
         let balance = 0;
         let jackpots = 0;
-        let rollDelay = 1.0;
+        let rollDelay = 1.5;
         let delayPrice = 1000;
         let hasTriple = false;
         let isRolling = false;
@@ -443,6 +498,7 @@
         let currentTitle = { name: "NO TITLE", mult: 1.0, color: "#6b7280" };
         let pendingDoN = 0;
         
+        // Chips
         let ownedChips = [];
         let equippedChips = [null, null, null];
         let marketNextReset = 0;
@@ -450,10 +506,19 @@
         let firewallCounter = 50;
         let lossStreak = 0;
 
+        // Potions
+        let potionInventory = {}; // { 'luck_1': 2 }
+        let activePotions = {}; // { 'Luck': endTime }
+        let rollsUntilPotion = 0;
+        let potionShopTimer = 0;
+        let potionShopStock = [];
+
+        // Glitch
         let glitchNextCheck = 0;
         let currentGlitch = null;
         let glitchEndTime = 0;
 
+        // Stats
         let totalRolls = 0;
         let totalGacha = 0;
         let donStreak = 0;
@@ -485,74 +550,38 @@
             osc.connect(gain); gain.connect(audioCtx.destination);
             osc.start(); osc.stop(audioCtx.currentTime + duration);
         }
-
         const bgm = document.getElementById('local-bgm');
         const bgmBtn = document.getElementById('bgm-toggle');
         let bgmInitialized = false;
-
         function toggleBGM() {
-            muteClicks++;
-            clearTimeout(muteTimer);
-            muteTimer = setTimeout(() => muteClicks = 0, 2000); 
+            muteClicks++; clearTimeout(muteTimer); muteTimer = setTimeout(() => muteClicks = 0, 2000); 
             if(muteClicks >= 10) checkAchievement('mute_spammer');
-
-            if (bgm.paused) {
-                bgm.play().catch(e => console.log("Interaction required"));
-                bgmBtn.textContent = "🔊 BGM: ON";
-            } else {
-                bgm.pause();
-                bgmBtn.textContent = "🔇 BGM: OFF";
-            }
+            if (bgm.paused) { bgm.play().catch(()=>{}); bgmBtn.textContent = "🔊 BGM: ON"; } else { bgm.pause(); bgmBtn.textContent = "🔇 BGM: OFF"; }
         }
-
-        document.addEventListener('click', () => {
-            if (!bgmInitialized) {
-                bgm.play().catch(() => {}); 
-                bgmInitialized = true;
-                bgmBtn.textContent = "🔊 BGM: ON";
-            }
-        }, { once: true });
+        document.addEventListener('click', () => { if (!bgmInitialized) { bgm.play().catch(()=>{}); bgmInitialized = true; bgmBtn.textContent = "🔊 BGM: ON"; } }, { once: true });
         bgmBtn.onclick = (e) => { e.stopPropagation(); toggleBGM(); };
 
-        // --- CLOUD SAVE/LOAD SYSTEM ---
+        // --- SAVE/LOAD ---
         function saveGame() {
             const currentSessionSeconds = Math.floor((Date.now() - sessionStartTime) / 1000);
-            
-            // 1. Construct the Full Data Object
             const data = { 
                 balance, jackpots, rollDelay, delayPrice, hasTriple, currentTitle, ownedSkins,
                 totalRolls, totalGacha, donStreak, unlockedAchievements,
                 ownedChips, equippedChips, marketNextReset, marketStock,
-                // Stats for Leaderboard
-                totalEarned: totalMoneyEarned,
-                clicks: totalClicks,
-                timeSpent: totalTimePlayed + currentSessionSeconds,
+                potionInventory, activePotions, rollsUntilPotion, potionShopTimer, potionShopStock, glitchNextCheck,
+                totalEarned: totalMoneyEarned, clicks: totalClicks, timeSpent: totalTimePlayed + currentSessionSeconds,
                 lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
             };
-
-            // 2. Local Save (Redundancy)
             localStorage.setItem('neon67_v3_save', JSON.stringify(data));
-            localStorage.setItem('neon67_totalearned', totalMoneyEarned);
-            localStorage.setItem('neon67_totalclicks', totalClicks);
-            localStorage.setItem('neon67_totaltime', totalTimePlayed);
-
-            // 3. CLOUD SAVE (If logged in)
-            if (playerName && auth.currentUser) {
-                db.collection("leaderboard").doc(playerName).set(data, { merge: true })
-                  .catch(err => console.error("Cloud Save Error:", err));
-            }
+            if (playerName && auth.currentUser) db.collection("leaderboard").doc(playerName).set(data, { merge: true }).catch(console.error);
         }
 
         async function loadFromCloud() {
             if (!playerName) return;
-            console.log("Attempting Cloud Load for:", playerName);
-            
             try {
                 const doc = await db.collection("leaderboard").doc(playerName).get();
                 if (doc.exists) {
                     const d = doc.data();
-                    
-                    // Restore Game Variables
                     if(d.balance !== undefined) balance = d.balance; 
                     if(d.jackpots !== undefined) jackpots = d.jackpots; 
                     if(d.rollDelay !== undefined) rollDelay = d.rollDelay;
@@ -568,355 +597,256 @@
                     if(d.equippedChips !== undefined) equippedChips = d.equippedChips;
                     if(d.marketNextReset !== undefined) marketNextReset = d.marketNextReset;
                     if(d.marketStock !== undefined) marketStock = d.marketStock;
+                    if(d.glitchNextCheck !== undefined) glitchNextCheck = d.glitchNextCheck;
+                    
+                    if(d.potionInventory !== undefined) potionInventory = d.potionInventory;
+                    if(d.activePotions !== undefined) activePotions = d.activePotions;
+                    if(d.rollsUntilPotion !== undefined) rollsUntilPotion = d.rollsUntilPotion;
+                    if(d.potionShopTimer !== undefined) potionShopTimer = d.potionShopTimer;
+                    if(d.potionShopStock !== undefined) potionShopStock = d.potionShopStock;
 
-                    // Restore Totals
                     if(d.totalEarned !== undefined) totalMoneyEarned = d.totalEarned;
                     if(d.clicks !== undefined) totalClicks = d.clicks;
                     if(d.timeSpent !== undefined) totalTimePlayed = d.timeSpent;
-
-                    updateUI();
-                    renderAchievements();
-                    checkSpecialSkins();
-                    renderDeck();
-                    console.log("Cloud Save Loaded Successfully");
+                    updateUI(); renderAchievements(); checkSpecialSkins(); renderDeck(); renderPotionMenu();
                 }
-            } catch (e) {
-                console.error("Cloud Load Error:", e);
-            }
+            } catch (e) { console.error("Cloud Load Error:", e); }
         }
 
-        // Local Load (Fallback)
         function loadGame() {
             const saved = localStorage.getItem('neon67_v3_save');
             if (saved) {
                 const d = JSON.parse(saved);
-                balance = d.balance || 0; 
-                jackpots = d.jackpots || 0; 
-                rollDelay = d.rollDelay || 2.0;
-                delayPrice = d.delayPrice || 1000; 
-                hasTriple = d.hasTriple || false;
+                balance = d.balance || 0; jackpots = d.jackpots || 0; rollDelay = d.rollDelay || 2.0;
+                delayPrice = d.delayPrice || 1000; hasTriple = d.hasTriple || false;
                 currentTitle = d.currentTitle || { name: "NO TITLE", mult: 1.0, color: "#6b7280" }; 
-                ownedSkins = d.ownedSkins || ['Default'];
-                totalRolls = d.totalRolls || 0;
-                totalGacha = d.totalGacha || 0;
-                donStreak = d.donStreak || 0;
+                ownedSkins = d.ownedSkins || ['Default']; totalRolls = d.totalRolls || 0;
+                totalGacha = d.totalGacha || 0; donStreak = d.donStreak || 0;
                 unlockedAchievements = d.unlockedAchievements || [];
-                ownedChips = d.ownedChips || [];
-                equippedChips = d.equippedChips || [null, null, null];
-                marketNextReset = d.marketNextReset || 0;
+                ownedChips = d.ownedChips || []; equippedChips = d.equippedChips || [null, null, null];
+                marketNextReset = d.marketNextReset || 0; marketStock = d.marketStock || [];
                 marketStock = d.marketStock || [];
+                glitchNextCheck = d.glitchNextCheck || (Date.now() + 900000);
+                
+                potionInventory = d.potionInventory || {};
+                activePotions = d.activePotions || {};
+                rollsUntilPotion = d.rollsUntilPotion || 0;
+                potionShopTimer = d.potionShopTimer || 0;
+                potionShopStock = d.potionShopStock || [];
 
-                updateUI();
-                renderAchievements();
-                checkSpecialSkins();
-                renderDeck();
+                updateUI(); renderAchievements(); checkSpecialSkins(); renderDeck(); renderPotionMenu();
             } else {
                 marketNextReset = Date.now() + 600000;
-                glitchNextCheck = Date.now() + 300000;
+                glitchNextCheck = Date.now() + 900000;
                 refreshMarket(true);
             }
         }
-
         function hardReset() { localStorage.removeItem('neon67_v3_save'); location.reload(); }
 
-        // --- NEW LEADERBOARD FUNCTIONS ---
-        function submitName() {
-            const input = document.getElementById('player-name-input').value.trim();
-            if (input.length >= 2) {
-                playerName = input;
-                localStorage.setItem('neon67_playername', playerName);
-                document.getElementById('name-prompt-overlay').classList.add('hidden');
-                // Trigger an initial save to create the doc
-                saveGame();
+        // --- POTION SYSTEM ---
+        function togglePotionMenu() {
+            document.getElementById('potion-menu-overlay').classList.toggle('hidden');
+            renderPotionMenu();
+        }
+
+        function showPotionTab(tab) {
+            document.getElementById('potion-view-inv').classList.add('hidden');
+            document.getElementById('potion-view-shop').classList.add('hidden');
+            document.getElementById('pt-inv').className = "flex-1 py-1 text-xs font-bold uppercase opacity-50";
+            document.getElementById('pt-shop').className = "flex-1 py-1 text-xs font-bold uppercase opacity-50";
+            
+            document.getElementById(`potion-view-${tab}`).classList.remove('hidden');
+            document.getElementById(`pt-${tab}`).className = "flex-1 py-1 text-xs font-bold uppercase text-[#00ffff]";
+            
+            if(tab === 'shop') checkPotionShopTimer();
+        }
+
+        function getActiveMultiplier(type) {
+            if (!activePotions[type] || activePotions[type].endTime < Date.now()) return 0;
+            const pId = activePotions[type].id;
+            if (pId === 'god_67') return (type === 'Luck' ? 5 : type === 'Money' ? 10 : 200);
+            
+            const tier = POTION_DB[pId].tier;
+            if (type === 'Luck') return tier === 1 ? 1.2 : tier === 2 ? 1.5 : 2;
+            if (type === 'Money') return tier === 1 ? 1.5 : tier === 2 ? 2 : 3;
+            if (type === 'Speed') return tier === 1 ? 15 : tier === 2 ? 35 : 75;
+            return 0;
+        }
+
+        function checkPotionDrop() {
+            rollsUntilPotion++;
+            const maxRolls = equippedChips.includes('alchemist') ? 35 : 50;
+            
+            if (rollsUntilPotion >= maxRolls) {
+                rollsUntilPotion = 0;
+                const r = Math.random() * 100;
+                let drop = '';
+                // 20% T1, 10% T2, 3.3% T3 each type. 0.1% Legendary.
+                if (r < 0.1) drop = 'god_67';
+                else if (r < 20.1) drop = 'luck_1';
+                else if (r < 40.1) drop = 'money_1';
+                else if (r < 60.1) drop = 'speed_1';
+                else if (r < 70.1) drop = 'luck_2';
+                else if (r < 80.1) drop = 'money_2';
+                else if (r < 90.1) drop = 'speed_2';
+                else if (r < 93.4) drop = 'luck_3';
+                else if (r < 96.7) drop = 'money_3';
+                else drop = 'speed_3';
+                
+                addPotion(drop);
+                const popup = document.getElementById('notify-popup');
+                document.getElementById('notify-text').textContent = "POTION FOUND: " + POTION_DB[drop].name;
+                popup.classList.add('show');
+                setTimeout(() => popup.classList.remove('show'), 3000);
             }
+            updatePotionProgress();
         }
 
-        async function renderLeaderboard() {
-            const content = document.getElementById('leaderboard-content');
-            content.innerHTML = '<p class="text-center animate-pulse">ACCESSING MOTHERBOARD...</p>';
-            try {
-                const snapshot = await db.collection("leaderboard").orderBy("totalEarned", "desc").limit(50).get();
-                let html = `<table class="leaderboard-table"><thead><tr><th>Player</th><th>Earned</th><th>Clicks</th><th>Time</th></tr></thead><tbody>`;
-                snapshot.forEach(doc => {
-                    const d = doc.data();
-                    const mins = Math.floor(d.timeSpent / 60);
-                    html += `<tr><td class="font-bold">${d.name || doc.id}</td><td class="text-green-400">$${Math.floor(d.totalEarned).toLocaleString()}</td><td>${d.clicks}</td><td>${mins}m</td></tr>`;
-                });
-                content.innerHTML = html + `</tbody></table>`;
-            } catch (e) {
-                content.innerHTML = '<p class="text-red-500">DATABASE OFFLINE</p>';
-            }
+        function updatePotionProgress() {
+            const max = equippedChips.includes('alchemist') ? 35 : 50;
+            const pct = (rollsUntilPotion / max) * 100;
+            document.getElementById('potion-progress-bar').style.width = pct + '%';
+            document.getElementById('drop-text').textContent = `${rollsUntilPotion}/${max}`;
         }
 
-        function toggleLeaderboard() {
-            const overlay = document.getElementById('leaderboard-overlay');
-            overlay.classList.toggle('hidden');
-            if (!overlay.classList.contains('hidden')) renderLeaderboard();
+        function addPotion(id) {
+            potionInventory[id] = (potionInventory[id] || 0) + 1;
+            renderPotionMenu();
         }
 
-        // --- AUTH FUNCTIONS ---
-        let isRegistering = false;
-
-        function toggleAuthMode() {
-            isRegistering = !isRegistering;
-            const regFields = document.getElementById('register-fields');
-            const btnLogin = document.getElementById('btn-login');
-            const btnReg = document.getElementById('btn-register');
-            const toggleText = document.getElementById('auth-toggle-text');
-            const title = document.getElementById('auth-title');
-
-            if (isRegistering) {
-                regFields.classList.remove('hidden');
-                btnLogin.classList.add('hidden');
-                btnReg.classList.remove('hidden');
-                toggleText.textContent = "ALREADY AN AGENT? LOGIN";
-                title.textContent = "INITIATE";
-            } else {
-                regFields.classList.add('hidden');
-                btnLogin.classList.remove('hidden');
-                btnReg.classList.add('hidden');
-                toggleText.textContent = "NO ID? CREATE NEW IDENTITY";
-                title.textContent = "IDENTIFY";
-            }
+        function usePotion(id) {
+            if (!potionInventory[id] || potionInventory[id] <= 0) return;
+            const data = POTION_DB[id];
+            
+            // Check active (Legendary counts as all types)
+            const types = data.type === 'Legendary' ? ['Luck', 'Money', 'Speed'] : [data.type];
+            
+            types.forEach(t => {
+                activePotions[t] = { id: id, endTime: Date.now() + 300000 };
+            });
+            
+            potionInventory[id]--;
+            playTone(800, 'triangle', 0.5);
+            renderPotionMenu();
+            updateActiveEffects();
         }
 
-        async function handleLogin() {
-            const email = document.getElementById('auth-email').value;
-            const pass = document.getElementById('auth-pass').value;
-            const err = document.getElementById('auth-error');
-
-            try {
-                await auth.signInWithEmailAndPassword(email, pass);
-                document.getElementById('auth-overlay').classList.add('hidden');
-                err.classList.add('hidden');
-            } catch (error) {
-                console.error(error);
-                err.textContent = "ERROR: " + error.message;
-                err.classList.remove('hidden');
-            }
+        function craftPotion(id) {
+            if (!potionInventory[id] || potionInventory[id] < 3) return;
+            const tier = POTION_DB[id].tier;
+            if (tier >= 3) return; // Cannot craft legendary
+            
+            const typeKey = id.split('_')[0]; // luck, money, speed
+            const nextId = `${typeKey}_${tier + 1}`;
+            
+            potionInventory[id] -= 3;
+            addPotion(nextId);
+            playTone(1000, 'sine', 0.5);
+            renderPotionMenu();
         }
 
-        async function handleRegister() {
-            const email = document.getElementById('auth-email').value;
-            const pass = document.getElementById('auth-pass').value;
-            const username = document.getElementById('reg-username').value;
-            const err = document.getElementById('auth-error');
-
-            if(username.length < 2) {
-                err.textContent = "INVALID USERNAME";
-                err.classList.remove('hidden');
+        function renderPotionMenu() {
+            const grid = document.getElementById('potion-inventory-grid');
+            grid.innerHTML = '';
+            
+            // Sort keys
+            const keys = Object.keys(potionInventory).sort();
+            
+            if (keys.length === 0 || keys.every(k => potionInventory[k] === 0)) {
+                grid.innerHTML = '<p class="col-span-2 text-center opacity-50 text-xs">No Potions Owned</p>';
                 return;
             }
 
-            try {
-                const cred = await auth.createUserWithEmailAndPassword(email, pass);
-                playerName = username;
-                localStorage.setItem('neon67_playername', playerName);
+            keys.forEach(id => {
+                if (potionInventory[id] <= 0) return;
+                const p = POTION_DB[id];
+                const rarityClass = p.tier === 1 ? 'rarity-t1' : p.tier === 2 ? 'rarity-t2' : p.tier === 3 ? 'rarity-t3' : 'rarity-legendary';
+                const canCraft = potionInventory[id] >= 3 && p.tier < 3;
                 
-                // Init in DB with user info + initial save
-                await db.collection("leaderboard").doc(playerName).set({
-                    name: playerName,
-                    uid: cred.user.uid,
-                    balance: 0,
-                    totalEarned: 0
-                }, { merge: true });
-
-                document.getElementById('auth-overlay').classList.add('hidden');
-                err.classList.add('hidden');
-            } catch (error) {
-                console.error(error);
-                err.textContent = "ERROR: " + error.message;
-                err.classList.remove('hidden');
-            }
-        }
-
-        async function handleLogout() {
-            await auth.signOut();
-            location.reload();
-        }
-
-        // --- ACHIEVEMENT LOGIC ---
-        function checkAchievement(id) {
-            if (unlockedAchievements.includes(id)) return;
-            unlockedAchievements.push(id);
-            const achData = ACHIEVEMENT_DATA.find(a => a.id === id);
-            const popup = document.getElementById('notify-popup');
-            document.getElementById('notify-text').textContent = achData.title;
-            popup.classList.add('show');
-            playTone(1500, 'triangle', 0.5);
-            setTimeout(() => popup.classList.remove('show'), 3000);
-
-            if(id === 'mute_spammer') {
-                if(!ownedSkins.includes('Joker')) ownedSkins.push('Joker');
-                checkSpecialSkins();
-            }
-            if(id === 'rgb_god') {
-                 if(!ownedSkins.includes('Rainbow')) ownedSkins.push('Rainbow');
-                 checkSpecialSkins();
-            }
-            saveGame();
-            renderAchievements();
-        }
-
-        function renderAchievements() {
-            const container = document.getElementById('ach-list');
-            container.innerHTML = '';
-            ACHIEVEMENT_DATA.forEach(ach => {
-                const isUnlocked = unlockedAchievements.includes(ach.id);
                 const div = document.createElement('div');
-                div.className = `ach-item flex justify-between items-center ${isUnlocked ? 'unlocked' : 'locked'}`;
-                div.innerHTML = `<div><p class="font-bold text-xs ${isUnlocked ? 'text-white' : 'text-gray-500'}">${ach.title}</p><p class="text-[8px] opacity-60">${ach.desc}</p></div><div class="text-xs font-bold">${isUnlocked ? '✅' : '🔒'}</div>`;
-                container.appendChild(div);
+                div.className = `potion-item ${rarityClass} border`;
+                div.innerHTML = `
+                    <div class="flex justify-between">
+                        <span class="font-bold text-xs">${p.name} (x${potionInventory[id]})</span>
+                        <span class="text-[9px] opacity-70">${p.type}</span>
+                    </div>
+                    <p class="text-[8px] opacity-60 mb-2">${p.desc}</p>
+                    <div class="flex gap-1">
+                        <button onclick="usePotion('${id}')" class="flex-1 bg-white/10 hover:bg-white/20 text-[9px] rounded py-1">USE</button>
+                        ${canCraft ? `<button onclick="craftPotion('${id}')" class="flex-1 bg-yellow-500/20 hover:bg-yellow-500/40 text-yellow-300 text-[9px] rounded py-1">CRAFT (3)</button>` : ''}
+                    </div>
+                `;
+                grid.appendChild(div);
             });
         }
 
-        // --- MARKET & CHIPS ---
-        function checkMarketTimer() {
+        function checkPotionShopTimer() {
             const now = Date.now();
-            if (now >= marketNextReset) {
-                refreshMarket();
-                marketNextReset = now + 600000;
+            if (now >= potionShopTimer) {
+                // Refresh Shop
+                potionShopTimer = now + 300000; // 5 mins
+                potionShopStock = [];
+                for(let i=0; i<3; i++) {
+                    const r = Math.random();
+                    // 60% T1, 35% T2, 5% T3
+                    const tier = r < 0.6 ? 1 : r < 0.95 ? 2 : 3;
+                    const type = ['luck', 'money', 'speed'][Math.floor(Math.random()*3)];
+                    potionShopStock.push(`${type}_${tier}`);
+                }
             }
-            const diff = marketNextReset - now;
+            const diff = potionShopTimer - now;
             const m = Math.floor(diff/60000);
             const s = Math.floor((diff%60000)/1000).toString().padStart(2,'0');
-            const timeStr = `${m}:${s}`;
-            document.getElementById('market-timer').textContent = `New Stock: ${timeStr}`;
-            document.getElementById('cycle-timer-bar').textContent = timeStr;
+            document.getElementById('potion-shop-timer').textContent = `${m}:${s}`;
+            renderPotionShop();
         }
 
-        function refreshMarket(force = false) {
-            const available = CHIP_DB.filter(c => !ownedChips.includes(c.id));
-            if (available.length === 0) { marketStock = []; return; }
-            const stock = [];
-            for(let i=0; i<2; i++) {
-                if (available.length > 0) {
-                    const idx = Math.floor(Math.random() * available.length);
-                    stock.push(available[idx].id);
-                    available.splice(idx, 1);
-                }
-            }
-            marketStock = stock;
-            renderDeck();
+        function renderPotionShop() {
+            const grid = document.getElementById('potion-shop-grid');
+            grid.innerHTML = '';
+            potionShopStock.forEach((id, idx) => {
+                if (id === null) return;
+                const p = POTION_DB[id];
+                const price = p.tier === 1 ? 500 : p.tier === 2 ? 2000 : 8000;
+                const div = document.createElement('div');
+                div.className = "potion-item flex justify-between items-center";
+                div.innerHTML = `
+                    <div><p class="font-bold text-xs" style="color:${p.color}">${p.name}</p><p class="text-[8px] opacity-60">${p.desc}</p></div>
+                    <button onclick="buyPotion('${id}', ${price}, ${idx})" class="btn-action px-2 py-1 rounded text-[9px] w-16">$${price}</button>
+                `;
+                grid.appendChild(div);
+            });
+            if (potionShopStock.every(x => x === null)) grid.innerHTML = '<div class="text-[9px] opacity-50 text-center">SOLD OUT</div>';
         }
 
-        function buyChip(id) {
-            const chip = CHIP_DB.find(c => c.id === id);
-            if (balance >= chip.price && !ownedChips.includes(id)) {
-                balance -= chip.price;
-                ownedChips.push(id);
-                if(ownedChips.length >= 5) checkAchievement('chip_collector');
-                marketStock = marketStock.filter(sid => sid !== id);
+        function buyPotion(id, price, idx) {
+            if (balance >= price) {
+                balance -= price;
+                addPotion(id);
+                potionShopStock[idx] = null;
                 playTone(1200, 'square', 0.1);
                 updateUI();
-                renderDeck();
+                renderPotionShop();
+                renderPotionMenu();
             }
         }
 
-        function equipChip(id) {
-            const emptyIdx = equippedChips.indexOf(null);
-            if (emptyIdx !== -1 && !equippedChips.includes(id)) {
-                equippedChips[emptyIdx] = id;
-                renderDeck();
-                playTone(600, 'sine', 0.1);
-            }
-        }
-
-        function unequipChip(idx) {
-            equippedChips[idx] = null;
-            renderDeck();
-            playTone(400, 'sine', 0.1);
-        }
-
-        function renderDeck() {
-            equippedChips.forEach((id, idx) => {
-                const el = document.getElementById(`slot-${idx}`);
-                if (id) {
-                    const data = CHIP_DB.find(c => c.id === id);
-                    el.textContent = data.name;
-                    el.className = "chip-slot occupied";
-                    el.style.borderColor = data.color;
-                    el.style.color = data.color;
-                } else {
-                    el.textContent = "EMPTY";
-                    el.className = "chip-slot";
-                    el.style = "";
-                }
-            });
-
-            const marketList = document.getElementById('market-list');
-            marketList.innerHTML = '';
-            marketStock.forEach(id => {
-                if (ownedChips.includes(id)) return;
-                const c = CHIP_DB.find(x => x.id === id);
-                const div = document.createElement('div');
-                div.className = "chip-item flex justify-between items-center";
-                div.innerHTML = `<div><p class="font-bold text-xs" style="color:${c.color}">${c.name}</p><p class="text-[8px] opacity-60">${c.desc}</p></div><button onclick="buyChip('${c.id}')" class="btn-action px-2 py-1 rounded text-[9px] w-16">$${c.price/1000}k</button>`;
-                marketList.appendChild(div);
-            });
-            if (marketStock.length === 0 && ownedChips.length < CHIP_DB.length) {
-                marketList.innerHTML = '<div class="text-[9px] opacity-50 text-center">SOLD OUT</div>';
-            }
-
-            const invList = document.getElementById('chip-inventory');
-            invList.innerHTML = '';
-            ownedChips.forEach(id => {
-                const c = CHIP_DB.find(x => x.id === id);
-                const isEquipped = equippedChips.includes(id);
-                const div = document.createElement('div');
-                div.className = `chip-item flex justify-between items-center ${isEquipped ? 'opacity-50' : ''}`;
-                div.innerHTML = `<div><p class="font-bold text-xs" style="color:${c.color}">${c.name}</p></div><button onclick="equipChip('${c.id}')" ${isEquipped ? 'disabled' : ''} class="bg-white/10 border border-white/20 text-white px-2 py-1 rounded text-[9px] hover:bg-white/20">${isEquipped ? 'EQUIPPED' : 'EQUIP'}</button>`;
-                invList.appendChild(div);
-            });
-        }
-
-        // --- GLITCH SYSTEM ---
-        function checkGlitchLoop() {
+        function updateActiveEffects() {
+            const bar = document.getElementById('active-potions-bar');
+            bar.innerHTML = '';
+            
             const now = Date.now();
-            if (!currentGlitch && now >= glitchNextCheck) {
-                if (Math.random() > 0.25) {
-                    const g = GLITCH_DB[Math.floor(Math.random() * GLITCH_DB.length)];
-                    activateGlitch(g);
-                } else {
-                    glitchNextCheck = now + 300000;
+            ['Luck', 'Money', 'Speed'].forEach(type => {
+                if (activePotions[type] && activePotions[type].endTime > now) {
+                    const left = Math.ceil((activePotions[type].endTime - now) / 1000);
+                    const p = POTION_DB[activePotions[type].id];
+                    const div = document.createElement('div');
+                    div.className = "active-potion-badge";
+                    div.style.borderColor = p.color;
+                    div.innerHTML = `<span style="color:${p.color}">●</span> ${type} (${Math.floor(left/60)}:${(left%60).toString().padStart(2,'0')})`;
+                    bar.appendChild(div);
                 }
-            }
-            if (currentGlitch && now >= glitchEndTime) endGlitch();
-
-            if (currentGlitch) {
-                const left = Math.ceil((glitchEndTime - now) / 1000);
-                document.getElementById('event-timer-bar').textContent = `ACTIVE (${left}s)`;
-                document.getElementById('event-timer-bar').className = "text-red-500 animate-pulse";
-            } else {
-                const diff = glitchNextCheck - now;
-                const m = Math.max(0, Math.floor(diff/60000));
-                const s = Math.max(0, Math.floor((diff%60000)/1000)).toString().padStart(2,'0');
-                document.getElementById('event-timer-bar').textContent = `${m}:${s}`;
-                document.getElementById('event-timer-bar').className = "text-white";
-            }
-        }
-
-        function activateGlitch(g) {
-            currentGlitch = g;
-            glitchEndTime = Date.now() + (g.duration * 1000);
-            const banner = document.getElementById('glitch-banner');
-            banner.textContent = `⚠️ WARNING: ${g.name} ACTIVE ⚠️`;
-            banner.classList.remove('hidden');
-            if (g.id === 'blood_moon') document.body.classList.add('glitch-blood-moon');
-            if (g.id === 'matrix') document.body.classList.add('glitch-matrix');
-            if (g.id === 'system_failure') document.getElementById('system-failure-overlay').classList.remove('hidden');
-            playTone(50, 'sawtooth', 1.0);
-        }
-
-        function endGlitch() {
-            if(currentGlitch && currentGlitch.id === 'blood_moon') checkAchievement('survivor');
-            currentGlitch = null;
-            glitchNextCheck = Date.now() + 300000;
-            document.getElementById('glitch-banner').classList.add('hidden');
-            document.body.classList.remove('glitch-blood-moon', 'glitch-matrix');
-            document.getElementById('system-failure-overlay').classList.add('hidden');
-            document.getElementById('zero-g-container').classList.add('hidden');
-            document.getElementById('zero-g-container').innerHTML = '';
+            });
         }
 
         // --- CORE UI ---
@@ -925,154 +855,53 @@
             document.getElementById('jackpot-count').textContent = `🏆 ${jackpots}`;
             document.getElementById('click-power').textContent = `$${(1 + (jackpots * 2)).toLocaleString()}`;
             document.getElementById('buy-delay').textContent = `$${Math.floor(delayPrice).toLocaleString()}`;
-            
             const tb = document.getElementById('current-title-box');
             tb.innerHTML = `${currentTitle.name} <span class="opacity-40 ml-2">(${currentTitle.mult}x)</span>`;
             tb.style.color = currentTitle.color;
             tb.style.borderColor = currentTitle.color;
-
-            if (hasTriple) {
-                document.getElementById('buy-triple').textContent = "OWNED";
-                document.getElementById('buy-triple').disabled = true;
-                document.getElementById('triple-indicator').classList.remove('hidden');
-            }
+            if (hasTriple) { document.getElementById('buy-triple').textContent = "OWNED"; document.getElementById('buy-triple').disabled = true; document.getElementById('triple-indicator').classList.remove('hidden'); }
             if(balance >= 1000) checkAchievement('first_taste');
             if(balance >= 1000000) checkAchievement('millionaire');
             if(balance === 0 && totalRolls > 5) checkAchievement('the_bottom');
+            updatePotionProgress();
             saveGame();
         }
 
         function showTab(id) {
-            ['earn', 'play', 'deck', 'shop', 'ach'].forEach(t => {
-                document.getElementById('view-' + t).classList.add('hidden');
-                document.getElementById('t-' + t).classList.remove('active');
-            });
-            document.getElementById('view-' + id).classList.remove('hidden');
-            document.getElementById('t-' + id).classList.add('active');
+            ['earn', 'play', 'deck', 'shop', 'ach'].forEach(t => { document.getElementById('view-' + t).classList.add('hidden'); document.getElementById('t-' + t).classList.remove('active'); });
+            document.getElementById('view-' + id).classList.remove('hidden'); document.getElementById('t-' + id).classList.add('active');
             if(id === 'deck') renderDeck();
         }
 
-        function quickBet(pct) { 
-            document.getElementById('bet-input').value = Math.floor(balance * pct); 
-            playTone(440, 'sine', 0.1);
-        }
+        function quickBet(pct) { document.getElementById('bet-input').value = Math.floor(balance * pct); playTone(440, 'sine', 0.1); }
 
         document.getElementById('clicker').onclick = () => {
             totalClicks++; 
             let gain = (1 + (jackpots * 2));
             if (equippedChips.includes('magnet')) gain *= 1.25;
+            
+            // Money Potion
+            const moneyMult = getActiveMultiplier('Money');
+            if (moneyMult > 0) gain *= moneyMult;
+            
             if (currentGlitch && currentGlitch.id === 'gold_rush') gain *= 2;
-            balance += gain;
-            totalMoneyEarned += gain; 
-            playTone(600, 'square', 0.05, 0.05);
-            updateUI();
+            balance += gain; totalMoneyEarned += gain; 
+            playTone(600, 'square', 0.05, 0.05); updateUI();
         };
 
         function rollGacha() {
             if (balance < 500) return;
-            balance -= 500;
-            totalGacha++;
-            if(totalGacha >= 20) checkAchievement('gacha_addict');
+            balance -= 500; totalGacha++; if(totalGacha >= 20) checkAchievement('gacha_addict');
             playTone(800, 'sawtooth', 0.2);
-            const rand = Math.random();
-            let cum = 0;
-            for (const t of TITLES) {
-                cum += t.chance;
-                if (rand <= cum) { currentTitle = t; break; }
-            }
+            const rand = Math.random(); let cum = 0;
+            for (const t of TITLES) { cum += t.chance; if (rand <= cum) { currentTitle = t; break; } }
             updateUI();
         }
 
         function buyUpgrade(type) {
-            if (type === 'delay' && balance >= delayPrice && rollDelay > 0.2) {
-                balance -= delayPrice; rollDelay -= 0.1; delayPrice *= 1.6;
-                if(rollDelay <= 0.21) checkAchievement('god_speed');
-            } else if (type === 'triple' && balance >= 88888 && !hasTriple) {
-                balance -= 88888; hasTriple = true;
-            }
-            playTone(1000, 'sine', 0.2);
-            updateUI();
-        }
-
-        function checkSpecialSkins() {
-            const grid = document.getElementById('skin-grid');
-            const specials = grid.querySelectorAll('.special-skin-btn');
-            specials.forEach(b => b.remove());
-
-            if(ownedSkins.includes('Joker')) {
-                const btn = document.createElement('button');
-                btn.className = "special-skin-btn p-2 border border-green-500 rounded text-[9px] text-green-500 font-bold";
-                btn.textContent = "JOKER";
-                btn.onclick = () => buySkin('Joker', '#ff00ff', '#00ff00');
-                grid.appendChild(btn);
-            }
-            if(ownedSkins.includes('Rainbow')) {
-                const btn = document.createElement('button');
-                btn.className = "special-skin-btn p-2 border border-white rounded text-[9px] font-bold";
-                btn.style.background = "linear-gradient(45deg, red, blue)";
-                btn.textContent = "RGB GOD";
-                btn.onclick = () => buySkin('Rainbow', '#ffffff', '#ffffff');
-                grid.appendChild(btn);
-            }
-        }
-
-        function buySkin(name, p, s) {
-            if (!ownedSkins.includes(name)) {
-                if (balance >= 1000) { balance -= 1000; ownedSkins.push(name); }
-                else return;
-            }
-            document.body.className = ''; 
-            if (currentGlitch && currentGlitch.id === 'blood_moon') document.body.classList.add('glitch-blood-moon'); 
-            if (currentGlitch && currentGlitch.id === 'matrix') document.body.classList.add('glitch-matrix');
-            if(name === 'Joker') document.body.classList.add('skin-joker');
-            else if(name === 'Rainbow') document.body.classList.add('skin-rainbow');
-            else {
-                document.documentElement.style.setProperty('--primary', p);
-                document.documentElement.style.setProperty('--secondary', s);
-                document.documentElement.style.setProperty('--bg', '#050505');
-            }
-            updateUI();
-        }
-
-        function winGame() {
-            if (balance >= 67676767) {
-                const total = Math.floor((Date.now() - startTime)/1000);
-                document.getElementById('time-taken').textContent = `Time: ${Math.floor(total/60)}m ${total%60}s`;
-                document.getElementById('main-ui').classList.add('hidden');
-                document.getElementById('win-screen').classList.remove('hidden');
-                document.body.classList.add('rave-bg');
-                setInterval(() => playTone(Math.random()*400+100, 'sawtooth', 0.1), 100);
-            }
-        }
-
-        function resolveDoN(gamble) {
-            if (!gamble) {
-                balance += pendingDoN;
-                totalMoneyEarned += pendingDoN; 
-                donStreak = 0;
-                document.getElementById('don-screen').classList.add('hidden');
-                updateUI();
-                playTone(600, 'sine', 0.3);
-                document.getElementById('roll-btn').disabled = false;
-            } else {
-                const win = Math.random() < 0.5;
-                if (win) {
-                    pendingDoN *= 2;
-                    donStreak++;
-                    if (donStreak >= 3) checkAchievement('diamond_hands');
-                    playTone(800, 'square', 0.2);
-                    document.getElementById('don-amount').textContent = `$${Math.floor(pendingDoN).toLocaleString()}`;
-                    document.getElementById('btn-take-val').textContent = `$${Math.floor(pendingDoN).toLocaleString()}`;
-                } else {
-                    if (pendingDoN > 50000) checkAchievement('greed');
-                    playTone(100, 'sawtooth', 0.5);
-                    pendingDoN = 0;
-                    donStreak = 0;
-                    document.getElementById('don-screen').classList.add('hidden');
-                    updateUI();
-                    document.getElementById('roll-btn').disabled = false;
-                }
-            }
+            if (type === 'delay' && balance >= delayPrice && rollDelay > 0.2) { balance -= delayPrice; rollDelay -= 0.1; delayPrice *= 1.6; if(rollDelay <= 0.21) checkAchievement('god_speed'); }
+            else if (type === 'triple' && balance >= 88888 && !hasTriple) { balance -= 88888; hasTriple = true; }
+            playTone(1000, 'sine', 0.2); updateUI();
         }
 
         // --- GAME LOGIC ---
@@ -1080,227 +909,158 @@
             if (isRolling) return;
             const betInput = document.getElementById('bet-input');
             let bet = parseInt(betInput.value);
-            if (isNaN(bet) || bet <= 0 || bet > balance) {
-                betInput.classList.add('shake');
-                setTimeout(() => betInput.classList.remove('shake'), 300);
-                return;
-            }
+            if (isNaN(bet) || bet <= 0 || bet > balance) { betInput.classList.add('shake'); setTimeout(() => betInput.classList.remove('shake'), 300); return; }
             if(equippedChips.includes('overclock')) bet = Math.floor(bet * 1.2);
             if(bet > balance) { betInput.classList.add('shake'); return; }
 
             isRolling = true;
-            if(!blind) document.getElementById('roll-btn').disabled = true;
-            else document.getElementById('blind-roll-btn').disabled = true;
-
+            if(!blind) document.getElementById('roll-btn').disabled = true; else document.getElementById('blind-roll-btn').disabled = true;
             const disp = document.getElementById('num-display');
-            disp.classList.remove('jackpot-anim');
-            document.getElementById('main-ui').classList.remove('shake');
-            if(equippedChips.includes('magnet')) disp.style.transform = "scale(1.1)";
-            else disp.style.transform = "scale(1)";
+            disp.classList.remove('jackpot-anim'); document.getElementById('main-ui').classList.remove('shake');
+            if(equippedChips.includes('magnet')) disp.style.transform = "scale(1.1)"; else disp.style.transform = "scale(1)";
 
+            // Speed Calculation
             let speed = rollDelay * 1000;
             if (equippedChips.includes('overclock')) speed /= 2;
+            const speedBoost = getActiveMultiplier('Speed'); // +15, +35, +75, +200
+            if (speedBoost > 0) speed = speed / (1 + (speedBoost / 100));
             if (currentGlitch && currentGlitch.id === 'zero_gravity') speed *= 4;
 
             if (blind) {
-                let loops = 0;
-                let shuff = setInterval(() => {
-                    playTone(200, 'sine', 0.05, 0.02);
-                    loops++;
-                    if(loops > 10) { clearInterval(shuff); finishRollLogic(bet, true); }
-                }, 100);
-                return;
+                let loops = 0; let shuff = setInterval(() => { playTone(200, 'sine', 0.05, 0.02); loops++; if(loops > 10) { clearInterval(shuff); finishRollLogic(bet, true); } }, 100); return;
             }
 
-            let shuffle = setInterval(() => {
-                disp.textContent = Math.floor(Math.random()*100).toString().padStart(2,'0');
-                playTone(200, 'sine', 0.05, 0.02);
-            }, 70);
+            let shuffle = setInterval(() => { disp.textContent = Math.floor(Math.random()*100).toString().padStart(2,'0'); playTone(200, 'sine', 0.05, 0.02); }, 70);
             await new Promise(r => setTimeout(r, speed));
             clearInterval(shuffle);
             finishRollLogic(bet, false);
         }
 
         function finishRollLogic(bet, blindMode) {
+            checkPotionDrop(); // Drop logic
+
             const generateNum = () => {
+                // Luck Potion Logic
+                const luckMult = getActiveMultiplier('Luck'); // 1.2, 1.5, 2, 5
+                
+                // Base chance for 6 or 7 is 2% (approx). With potion, we reroll into them.
+                if (luckMult > 0) {
+                    // Check force win
+                    // Base probability to hit 6 or 7 specifically is 0.02.
+                    // New probability = 0.02 * luckMult.
+                    if (Math.random() < 0.02 * luckMult) {
+                        return Math.random() < 0.5 ? 6 : 7;
+                    }
+                }
+
                 let r = Math.floor(Math.random()*100);
                 if (equippedChips.includes('lucky_seven') && Math.random() < 0.05) r = 7; 
                 return r;
             }
             const rolls = hasTriple ? [0,0,0].map(() => generateNum()) : [generateNum()];
-            if (currentGlitch && currentGlitch.id === 'zero_gravity') {
-                spawnZeroGOrb(rolls, bet);
-                return;
-            }
+            if (currentGlitch && currentGlitch.id === 'zero_gravity') { spawnZeroGOrb(rolls, bet); return; }
             displayResults(rolls, bet, blindMode);
-        }
-
-        function spawnZeroGOrb(rolls, bet) {
-            const container = document.getElementById('zero-g-container');
-            container.classList.remove('hidden');
-            const orb = document.createElement('div');
-            orb.className = 'zero-g-orb';
-            orb.textContent = '?';
-            orb.style.left = (20 + Math.random()*60) + '%';
-            orb.style.top = (20 + Math.random()*60) + '%';
-            orb.onclick = () => {
-                orb.remove();
-                container.classList.add('hidden');
-                displayResults(rolls, bet, false);
-            };
-            container.appendChild(orb);
         }
 
         function displayResults(rolls, bet, blindMode) {
             const disp = document.getElementById('num-display');
-            if (!blindMode) {
-                disp.textContent = rolls.map(r => r.toString().padStart(2, '0')).join(" | ");
-                disp.style.fontSize = hasTriple ? "1.8rem" : "3.75rem";
-            }
-            let totalChange = 0;
-            let status = "LOSE";
-            let color = "text-gray-500";
-            let triggerDoN = false;
-            let tripleHasSixSeven = 0;
-
+            if (!blindMode) { disp.textContent = rolls.map(r => r.toString().padStart(2, '0')).join(" | "); disp.style.fontSize = hasTriple ? "1.8rem" : "3.75rem"; }
+            let totalChange = 0; let status = "LOSE"; let color = "text-gray-500"; let triggerDoN = false; let tripleHasSixSeven = 0;
+            
             rolls.forEach(res => {
-                const s = res.toString().padStart(2, '0');
-                let mult = -1.0;
-                if (currentGlitch && currentGlitch.id === 'blood_moon') {
-                    if (res === 67) mult = 67 * 4;
-                    else if ([0, 99].includes(res)) { hardReset(); return; }
-                    else if (mult > 0) mult *= 4;
-                }
-                if (currentGlitch && currentGlitch.id === 'gold_rush') {
-                    if (mult < 0) mult = 0; else mult *= 2;
-                }
-                if (res === 67) {
-                    mult = 67; jackpots++; status = "JACKPOT!"; color = "text-yellow-400"; triggerDoN = true;
-                    if (totalRolls === 0) checkAchievement('the_chosen_one');
-                    if (currentTitle.name === 'NO TITLE') checkAchievement('pure_skill');
-                    if (balance - bet < 10) checkAchievement('miracle');
-                } else if ([6, 7, 60, 70].includes(res)) {
-                    mult = 2; status = "WIN X2"; color = "neon-text-blue";
-                } else if (s.includes('6') || s.includes('7')) {
-                    mult = 1.2;
-                    if (status !== "WIN X2" && status !== "JACKPOT!") { status = "WIN X1.2"; color = "neon-text-pink"; }
-                } else if ([0, 99].includes(res)) {
-                    let penalty = -10;
-                    if (equippedChips.includes('stabilizer')) penalty = -5;
-                    if (equippedChips.includes('firewall')) {
-                        if (firewallCounter >= 50) { penalty = 0; status = "BLOCKED"; color = "text-blue-500"; firewallCounter = 0; }
-                        else firewallCounter++;
-                    } else firewallCounter++;
+                const s = res.toString().padStart(2, '0'); let mult = -1.0;
+                if (currentGlitch && currentGlitch.id === 'blood_moon') { if (res === 67) mult = 67 * 4; else if ([0, 99].includes(res)) { hardReset(); return; } else if (mult > 0) mult *= 4; }
+                if (currentGlitch && currentGlitch.id === 'gold_rush') { if (mult < 0) mult = 0; else mult *= 2; }
+                
+                if (res === 67) { mult = 67; jackpots++; status = "JACKPOT!"; color = "text-yellow-400"; triggerDoN = true; if (totalRolls === 0) checkAchievement('the_chosen_one'); if (currentTitle.name === 'NO TITLE') checkAchievement('pure_skill'); if (balance - bet < 10) checkAchievement('miracle'); }
+                else if ([6, 7, 60, 70].includes(res)) { mult = 2; status = "WIN X2"; color = "neon-text-blue"; }
+                else if (s.includes('6') || s.includes('7')) { mult = 1.2; if (status !== "WIN X2" && status !== "JACKPOT!") { status = "WIN X1.2"; color = "neon-text-pink"; } }
+                else if ([0, 99].includes(res)) {
+                    let penalty = -10; if (equippedChips.includes('stabilizer')) penalty = -5;
+                    if (equippedChips.includes('firewall')) { if (firewallCounter >= 50) { penalty = 0; status = "BLOCKED"; color = "text-blue-500"; firewallCounter = 0; } else firewallCounter++; } else firewallCounter++;
                     mult = penalty; status = "PENALTY!"; color = "text-red-600";
-                    const now = Date.now();
-                    penaltyTimestamps.push(now);
-                    penaltyTimestamps = penaltyTimestamps.filter(t => now - t < 60000);
-                    if (penaltyTimestamps.length >= 3) checkAchievement('hohin');
+                    const now = Date.now(); penaltyTimestamps.push(now); penaltyTimestamps = penaltyTimestamps.filter(t => now - t < 60000); if (penaltyTimestamps.length >= 3) checkAchievement('hohin');
                 }
-                if (currentGlitch && currentGlitch.id === 'matrix') {
-                    mult *= -1;
-                    if (mult > 0) { status = "MATRIX WIN"; color = "glitch-matrix"; }
-                    else { status = "MATRIX LOSS"; color = "text-red-500"; if (res === 67) triggerDoN = false; }
-                }
+                if (currentGlitch && currentGlitch.id === 'matrix') { mult *= -1; if (mult > 0) { status = "MATRIX WIN"; color = "glitch-matrix"; } else { status = "MATRIX LOSS"; color = "text-red-500"; if (res === 67) triggerDoN = false; } }
                 if (hasTriple && (s.includes('6') || s.includes('7'))) tripleHasSixSeven++;
+                
                 let effectiveMult = mult;
                 if (mult > 0) effectiveMult = mult * currentTitle.mult;
                 if (equippedChips.includes('greed_core')) { if (effectiveMult > 0) effectiveMult *= 1.15; else effectiveMult *= 1.1; }
+                
+                // Money Potion
+                const moneyMult = getActiveMultiplier('Money');
+                if (moneyMult > 0) {
+                     // Potion multiplies total received money.
+                     // The requirement says "multiplies money received from both bet and tap".
+                     // For betting, this implies the PROFIT is multiplied, or the whole return?
+                     // Usually "Money received" implies the win amount.
+                     if (effectiveMult > 0) effectiveMult *= moneyMult;
+                }
+
                 totalChange += (bet * effectiveMult);
             });
-            if (hasTriple && tripleHasSixSeven === 3) checkAchievement('golden_trio');
-            totalRolls++;
+            if (hasTriple && tripleHasSixSeven === 3) checkAchievement('golden_trio'); totalRolls++;
 
-            if (totalChange < 0) {
-                lossStreak++;
-                if (equippedChips.includes('vampire')) totalChange += (bet * 0.05);
-                if (equippedChips.includes('recycler') && lossStreak >= 5) { totalChange += (bet * 1.0); lossStreak = 0; }
-            } else lossStreak = 0;
+            if (totalChange < 0) { lossStreak++; if (equippedChips.includes('vampire')) totalChange += (bet * 0.05); if (equippedChips.includes('recycler') && lossStreak >= 5) { totalChange += (bet * 1.0); lossStreak = 0; } } else lossStreak = 0;
 
-            if (totalChange < 0) {
-                 document.getElementById('main-ui').classList.add('shake');
-                 setTimeout(() => document.getElementById('main-ui').classList.remove('shake'), 300);
-                 if(blindMode) playTone(100, 'sawtooth', 0.5); 
-            } else if (blindMode) playTone(800, 'square', 0.3);
+            if (totalChange < 0) { document.getElementById('main-ui').classList.add('shake'); setTimeout(() => document.getElementById('main-ui').classList.remove('shake'), 300); if(blindMode) playTone(100, 'sawtooth', 0.5); } else if (blindMode) playTone(800, 'square', 0.3);
 
             if (triggerDoN && totalChange > 0 && !(currentGlitch && currentGlitch.id === 'gold_rush')) {
-                document.getElementById('msg').textContent = "DOUBLE OR NOTHING?";
-                document.getElementById('msg').className = "h-5 text-[12px] font-bold mt-1 uppercase text-yellow-400";
-                isRolling = false;
-                pendingDoN = totalChange;
-                document.getElementById('don-amount').textContent = `$${Math.floor(pendingDoN).toLocaleString()}`;
-                document.getElementById('btn-take-val').textContent = `$${Math.floor(pendingDoN).toLocaleString()}`;
-                if (!blindMode) document.getElementById('don-screen').classList.remove('hidden');
-                else {
-                    balance += totalChange; totalMoneyEarned += totalChange; updateUI(); isRolling = false; document.getElementById('blind-roll-btn').disabled = false;
-                }
+                document.getElementById('msg').textContent = "DOUBLE OR NOTHING?"; document.getElementById('msg').className = "h-5 text-[12px] font-bold mt-1 uppercase text-yellow-400"; isRolling = false; pendingDoN = totalChange;
+                document.getElementById('don-amount').textContent = `$${Math.floor(pendingDoN).toLocaleString()}`; document.getElementById('btn-take-val').textContent = `$${Math.floor(pendingDoN).toLocaleString()}`;
+                if (!blindMode) document.getElementById('don-screen').classList.remove('hidden'); else { balance += totalChange; totalMoneyEarned += totalChange; updateUI(); isRolling = false; document.getElementById('blind-roll-btn').disabled = false; }
                 playTone(100, 'sawtooth', 0.5);
             } else {
-                balance += totalChange;
-                if (balance < 0) balance = 0;
-                if (totalChange > 0) totalMoneyEarned += totalChange;
-                if (!blindMode) {
-                    document.getElementById('msg').textContent = status;
-                    document.getElementById('msg').className = `h-5 text-[12px] font-bold mt-1 uppercase ${color}`;
-                }
-                updateUI();
-                isRolling = false;
-                document.getElementById('roll-btn').disabled = false;
-                document.getElementById('blind-roll-btn').disabled = false;
+                balance += totalChange; if (balance < 0) balance = 0; if (totalChange > 0) totalMoneyEarned += totalChange;
+                if (!blindMode) { document.getElementById('msg').textContent = status; document.getElementById('msg').className = `h-5 text-[12px] font-bold mt-1 uppercase ${color}`; }
+                updateUI(); isRolling = false; document.getElementById('roll-btn').disabled = false; document.getElementById('blind-roll-btn').disabled = false;
             }
         }
 
-        document.getElementById('roll-btn').onclick = () => performRoll(false);
-        document.getElementById('blind-roll-btn').onclick = () => performRoll(true);
-
-        const canvas = document.getElementById('bg-canvas');
-        const ctx = canvas.getContext('2d');
-        let pts = [];
-        function init() {
-            canvas.width = window.innerWidth; canvas.height = window.innerHeight;
-            pts = Array.from({length: 40}, () => ({ x: Math.random()*canvas.width, y: Math.random()*canvas.height, s: Math.random()*20+10, v: Math.random()*1+0.5 }));
+        // --- Standard Functions (Shop, Chips, Glitch, etc) ---
+        function checkMarketTimer() {
+            const now = Date.now(); if (now >= marketNextReset) { refreshMarket(); marketNextReset = now + 600000; }
+            const diff = marketNextReset - now; const m = Math.floor(diff/60000); const s = Math.floor((diff%60000)/1000).toString().padStart(2,'0');
+            document.getElementById('market-timer').textContent = `New Stock: ${m}:${s}`; document.getElementById('cycle-timer-bar').textContent = `${m}:${s}`;
         }
-        function draw() {
-            ctx.clearRect(0,0,canvas.width,canvas.height); 
-            ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--bg') || '#050505'; 
-            ctx.fillRect(0,0,canvas.width,canvas.height);
-            const prim = getComputedStyle(document.body).getPropertyValue('--primary').trim();
-            pts.forEach(p => { p.y -= p.v; if(p.y < -30) p.y = canvas.height + 30; ctx.fillStyle = prim + "22"; ctx.font = `${p.s}px Orbitron`; ctx.fillText('67', p.x, p.y); });
-            requestAnimationFrame(draw);
+        function refreshMarket() { const available = CHIP_DB.filter(c => !ownedChips.includes(c.id)); if (available.length === 0) { marketStock = []; return; } const stock = []; for(let i=0; i<2; i++) { if (available.length > 0) { const idx = Math.floor(Math.random() * available.length); stock.push(available[idx].id); available.splice(idx, 1); } } marketStock = stock; renderDeck(); }
+        function buyChip(id) { const chip = CHIP_DB.find(c => c.id === id); if (balance >= chip.price && !ownedChips.includes(id)) { balance -= chip.price; ownedChips.push(id); if(ownedChips.length >= 5) checkAchievement('chip_collector'); marketStock = marketStock.filter(sid => sid !== id); playTone(1200, 'square', 0.1); updateUI(); renderDeck(); } }
+        function equipChip(id) { const emptyIdx = equippedChips.indexOf(null); if (emptyIdx !== -1 && !equippedChips.includes(id)) { equippedChips[emptyIdx] = id; renderDeck(); playTone(600, 'sine', 0.1); } }
+        function unequipChip(idx) { equippedChips[idx] = null; renderDeck(); playTone(400, 'sine', 0.1); }
+        function renderDeck() {
+            equippedChips.forEach((id, idx) => { const el = document.getElementById(`slot-${idx}`); if (id) { const data = CHIP_DB.find(c => c.id === id); el.textContent = data.name; el.className = "chip-slot occupied"; el.style.borderColor = data.color; el.style.color = data.color; } else { el.textContent = "EMPTY"; el.className = "chip-slot"; el.style = ""; } });
+            const marketList = document.getElementById('market-list'); marketList.innerHTML = ''; marketStock.forEach(id => { if (ownedChips.includes(id)) return; const c = CHIP_DB.find(x => x.id === id); const div = document.createElement('div'); div.className = "chip-item flex justify-between items-center"; div.innerHTML = `<div><p class="font-bold text-xs" style="color:${c.color}">${c.name}</p><p class="text-[8px] opacity-60">${c.desc}</p></div><button onclick="buyChip('${c.id}')" class="btn-action px-2 py-1 rounded text-[9px] w-16">$${c.price/1000}k</button>`; marketList.appendChild(div); }); if (marketStock.length === 0 && ownedChips.length < CHIP_DB.length) marketList.innerHTML = '<div class="text-[9px] opacity-50 text-center">SOLD OUT</div>';
+            const invList = document.getElementById('chip-inventory'); invList.innerHTML = ''; ownedChips.forEach(id => { const c = CHIP_DB.find(x => x.id === id); const isEquipped = equippedChips.includes(id); const div = document.createElement('div'); div.className = `chip-item flex justify-between items-center ${isEquipped ? 'opacity-50' : ''}`; div.innerHTML = `<div><p class="font-bold text-xs" style="color:${c.color}">${c.name}</p></div><button onclick="equipChip('${c.id}')" ${isEquipped ? 'disabled' : ''} class="bg-white/10 border border-white/20 text-white px-2 py-1 rounded text-[9px] hover:bg-white/20">${isEquipped ? 'EQUIPPED' : 'EQUIP'}</button>`; invList.appendChild(div); });
         }
+        function checkGlitchLoop() { const now = Date.now(); if (!currentGlitch && now >= glitchNextCheck) { const g = GLITCH_DB[Math.floor(Math.random() * GLITCH_DB.length)]; 
+activateGlitch(g); } if (currentGlitch && now >= glitchEndTime) endGlitch(); if (currentGlitch) { const left = Math.ceil((glitchEndTime - now) / 1000); document.getElementById('event-timer-bar').textContent = `ACTIVE (${left}s)`; document.getElementById('event-timer-bar').className = "text-red-500 animate-pulse"; } else { const diff = glitchNextCheck - now; const m = Math.max(0, Math.floor(diff/60000)); const s = Math.max(0, Math.floor((diff%60000)/1000)).toString().padStart(2,'0'); document.getElementById('event-timer-bar').textContent = `${m}:${s}`; document.getElementById('event-timer-bar').className = "text-white"; } }
+        function activateGlitch(g) { currentGlitch = g; glitchEndTime = Date.now() + (g.duration * 1000); const banner = document.getElementById('glitch-banner'); banner.textContent = `⚠️ WARNING: ${g.name} ACTIVE ⚠️`; banner.classList.remove('hidden'); if (g.id === 'blood_moon') document.body.classList.add('glitch-blood-moon'); if (g.id === 'matrix') document.body.classList.add('glitch-matrix'); if (g.id === 'system_failure') document.getElementById('system-failure-overlay').classList.remove('hidden'); playTone(50, 'sawtooth', 1.0); }
+        function endGlitch() { if(currentGlitch && currentGlitch.id === 'blood_moon') checkAchievement('survivor'); currentGlitch = null; glitchNextCheck = Date.now() + 900000; document.getElementById('glitch-banner').classList.add('hidden'); document.body.classList.remove('glitch-blood-moon', 'glitch-matrix'); document.getElementById('system-failure-overlay').classList.add('hidden'); document.getElementById('zero-g-container').classList.add('hidden'); document.getElementById('zero-g-container').innerHTML = ''; }
+        function checkSpecialSkins() { const grid = document.getElementById('skin-grid'); const specials = grid.querySelectorAll('.special-skin-btn'); specials.forEach(b => b.remove()); if(ownedSkins.includes('Joker')) { const btn = document.createElement('button'); btn.className = "special-skin-btn p-2 border border-green-500 rounded text-[9px] text-green-500 font-bold"; btn.textContent = "JOKER"; btn.onclick = () => buySkin('Joker', '#ff00ff', '#00ff00'); grid.appendChild(btn); } if(ownedSkins.includes('Rainbow')) { const btn = document.createElement('button'); btn.className = "special-skin-btn p-2 border border-white rounded text-[9px] font-bold"; btn.style.background = "linear-gradient(45deg, red, blue)"; btn.textContent = "RGB GOD"; btn.onclick = () => buySkin('Rainbow', '#ffffff', '#ffffff'); grid.appendChild(btn); } }
+        function buySkin(name, p, s) { if (!ownedSkins.includes(name)) { if (balance >= 1000) { balance -= 1000; ownedSkins.push(name); } else return; } document.body.className = ''; if (currentGlitch && currentGlitch.id === 'blood_moon') document.body.classList.add('glitch-blood-moon'); if (currentGlitch && currentGlitch.id === 'matrix') document.body.classList.add('glitch-matrix'); if(name === 'Joker') document.body.classList.add('skin-joker'); else if(name === 'Rainbow') document.body.classList.add('skin-rainbow'); else { document.documentElement.style.setProperty('--primary', p); document.documentElement.style.setProperty('--secondary', s); document.documentElement.style.setProperty('--bg', '#050505'); } updateUI(); }
+        function winGame() { if (balance >= 67676767) { const total = Math.floor((Date.now() - startTime)/1000); document.getElementById('time-taken').textContent = `Time: ${Math.floor(total/60)}m ${total%60}s`; document.getElementById('main-ui').classList.add('hidden'); document.getElementById('win-screen').classList.remove('hidden'); document.body.classList.add('rave-bg'); setInterval(() => playTone(Math.random()*400+100, 'sawtooth', 0.1), 100); } }
+        function checkAchievement(id) { if (unlockedAchievements.includes(id)) return; unlockedAchievements.push(id); const achData = ACHIEVEMENT_DATA.find(a => a.id === id); const popup = document.getElementById('notify-popup'); document.getElementById('notify-text').textContent = achData.title; popup.classList.add('show'); playTone(1500, 'triangle', 0.5); setTimeout(() => popup.classList.remove('show'), 3000); if(id === 'mute_spammer') { if(!ownedSkins.includes('Joker')) ownedSkins.push('Joker'); checkSpecialSkins(); } if(id === 'rgb_god') { if(!ownedSkins.includes('Rainbow')) ownedSkins.push('Rainbow'); checkSpecialSkins(); } saveGame(); renderAchievements(); }
+        function renderAchievements() { const container = document.getElementById('ach-list'); container.innerHTML = ''; ACHIEVEMENT_DATA.forEach(ach => { const isUnlocked = unlockedAchievements.includes(ach.id); const div = document.createElement('div'); div.className = `ach-item flex justify-between items-center ${isUnlocked ? 'unlocked' : 'locked'}`; div.innerHTML = `<div><p class="font-bold text-xs ${isUnlocked ? 'text-white' : 'text-gray-500'}">${ach.title}</p><p class="text-[8px] opacity-60">${ach.desc}</p></div><div class="text-xs font-bold">${isUnlocked ? '✅' : '🔒'}</div>`; container.appendChild(div); }); }
+        function resolveDoN(gamble) { if (!gamble) { balance += pendingDoN; totalMoneyEarned += pendingDoN; donStreak = 0; document.getElementById('don-screen').classList.add('hidden'); updateUI(); playTone(600, 'sine', 0.3); document.getElementById('roll-btn').disabled = false; } else { const win = Math.random() < 0.5; if (win) { pendingDoN *= 2; donStreak++; if (donStreak >= 3) checkAchievement('diamond_hands'); playTone(800, 'square', 0.2); document.getElementById('don-amount').textContent = `$${Math.floor(pendingDoN).toLocaleString()}`; document.getElementById('btn-take-val').textContent = `$${Math.floor(pendingDoN).toLocaleString()}`; } else { if (pendingDoN > 50000) checkAchievement('greed'); playTone(100, 'sawtooth', 0.5); pendingDoN = 0; donStreak = 0; document.getElementById('don-screen').classList.add('hidden'); updateUI(); document.getElementById('roll-btn').disabled = false; } } }
+        function spawnZeroGOrb(rolls, bet) { const container = document.getElementById('zero-g-container'); container.classList.remove('hidden'); const orb = document.createElement('div'); orb.className = 'zero-g-orb'; orb.textContent = '?'; orb.style.left = (20 + Math.random()*60) + '%'; orb.style.top = (20 + Math.random()*60) + '%'; orb.onclick = () => { orb.remove(); container.classList.add('hidden'); displayResults(rolls, bet, false); }; container.appendChild(orb); }
+        function submitName() { const input = document.getElementById('player-name-input').value.trim(); if (input.length >= 2) { playerName = input; localStorage.setItem('neon67_playername', playerName); document.getElementById('name-prompt-overlay').classList.add('hidden'); saveGame(); } }
+        async function renderLeaderboard() { const content = document.getElementById('leaderboard-content'); content.innerHTML = '<p class="text-center animate-pulse">ACCESSING MOTHERBOARD...</p>'; try { const snapshot = await db.collection("leaderboard").orderBy("totalEarned", "desc").limit(50).get(); let html = `<table class="leaderboard-table"><thead><tr><th>Player</th><th>Earned</th><th>Clicks</th><th>Time</th></tr></thead><tbody>`; snapshot.forEach(doc => { const d = doc.data(); const mins = Math.floor(d.timeSpent / 60); html += `<tr><td class="font-bold">${d.name || doc.id}</td><td class="text-green-400">$${Math.floor(d.totalEarned).toLocaleString()}</td><td>${d.clicks}</td><td>${mins}m</td></tr>`; }); content.innerHTML = html + `</tbody></table>`; } catch (e) { content.innerHTML = '<p class="text-red-500">DATABASE OFFLINE</p>'; } }
+        function toggleLeaderboard() { const overlay = document.getElementById('leaderboard-overlay'); overlay.classList.toggle('hidden'); if (!overlay.classList.contains('hidden')) renderLeaderboard(); }
+        let isRegistering = false;
+        function toggleAuthMode() { isRegistering = !isRegistering; document.getElementById('register-fields').classList.toggle('hidden'); document.getElementById('btn-login').classList.toggle('hidden'); document.getElementById('btn-register').classList.toggle('hidden'); document.getElementById('auth-toggle-text').textContent = isRegistering ? "ALREADY AN AGENT? LOGIN" : "NO ID? CREATE NEW IDENTITY"; document.getElementById('auth-title').textContent = isRegistering ? "INITIATE" : "IDENTIFY"; }
+        async function handleLogin() { const email = document.getElementById('auth-email').value; const pass = document.getElementById('auth-pass').value; const err = document.getElementById('auth-error'); try { await auth.signInWithEmailAndPassword(email, pass); document.getElementById('auth-overlay').classList.add('hidden'); err.classList.add('hidden'); } catch (error) { console.error(error); err.textContent = "ERROR: " + error.message; err.classList.remove('hidden'); } }
+        async function handleRegister() { const email = document.getElementById('auth-email').value; const pass = document.getElementById('auth-pass').value; const username = document.getElementById('reg-username').value; const err = document.getElementById('auth-error'); if(username.length < 2) { err.textContent = "INVALID USERNAME"; err.classList.remove('hidden'); return; } try { const cred = await auth.createUserWithEmailAndPassword(email, pass); playerName = username; localStorage.setItem('neon67_playername', playerName); await db.collection("leaderboard").doc(playerName).set({ name: playerName, uid: cred.user.uid, balance: 0, totalEarned: 0 }, { merge: true }); document.getElementById('auth-overlay').classList.add('hidden'); err.classList.add('hidden'); } catch (error) { console.error(error); err.textContent = "ERROR: " + error.message; err.classList.remove('hidden'); } }
+        async function handleLogout() { await auth.signOut(); location.reload(); }
 
-        setInterval(() => { checkMarketTimer(); checkGlitchLoop(); }, 1000);
-        setInterval(() => saveGame(), 30000); // Auto-save to cloud every 30s
+        const canvas = document.getElementById('bg-canvas'); const ctx = canvas.getContext('2d'); let pts = [];
+        function init() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; pts = Array.from({length: 40}, () => ({ x: Math.random()*canvas.width, y: Math.random()*canvas.height, s: Math.random()*20+10, v: Math.random()*1+0.5 })); }
+        function draw() { ctx.clearRect(0,0,canvas.width,canvas.height); ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--bg') || '#050505'; ctx.fillRect(0,0,canvas.width,canvas.height); const prim = getComputedStyle(document.body).getPropertyValue('--primary').trim(); pts.forEach(p => { p.y -= p.v; if(p.y < -30) p.y = canvas.height + 30; ctx.fillStyle = prim + "22"; ctx.font = `${p.s}px Orbitron`; ctx.fillText('67', p.x, p.y); }); requestAnimationFrame(draw); }
 
+        setInterval(() => { checkMarketTimer(); checkGlitchLoop(); if(document.getElementById('potion-view-shop').classList.contains('hidden') === false) checkPotionShopTimer(); updateActiveEffects(); }, 1000);
+        setInterval(() => saveGame(), 30000);
         window.addEventListener('resize', init);
-        
-        window.onload = () => {
-            loadGame(); 
-            init(); 
-            draw();
-
-            auth.onAuthStateChanged(user => {
-                if (user) {
-                    document.getElementById('auth-overlay').classList.add('hidden');
-                    // Check if player name exists locally
-                    if (!playerName) {
-                        db.collection('leaderboard').where('uid', '==', user.uid).get().then(snap => {
-                            if(!snap.empty) {
-                                playerName = snap.docs[0].data().name;
-                                localStorage.setItem('neon67_playername', playerName);
-                                loadFromCloud(); // Trigger cloud load once name found
-                            } else {
-                                document.getElementById('name-prompt-overlay').classList.remove('hidden');
-                            }
-                        });
-                    } else {
-                        loadFromCloud(); // Load cloud data on boot if name known
-                    }
-                } else {
-                    document.getElementById('auth-overlay').classList.remove('hidden');
-                }
-            });
-        };
+        window.onload = () => { loadGame(); init(); draw(); auth.onAuthStateChanged(user => { if (user) { document.getElementById('auth-overlay').classList.add('hidden'); if (!playerName) { db.collection('leaderboard').where('uid', '==', user.uid).get().then(snap => { if(!snap.empty) { playerName = snap.docs[0].data().name; localStorage.setItem('neon67_playername', playerName); loadFromCloud(); } else { document.getElementById('name-prompt-overlay').classList.remove('hidden'); } }); } else { loadFromCloud(); } } else { document.getElementById('auth-overlay').classList.remove('hidden'); } }); };
     </script>
 </body>
 </html>
