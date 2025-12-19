@@ -6,7 +6,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Neon Jackpot 67 - Alchemy Update</title>
+    <title>Neon Jackpot 67 - Global Sync Update</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
@@ -368,7 +368,7 @@
                 </div>
                 <div class="flex justify-between items-center mb-2 border-t border-white/10 pt-4">
                     <p class="text-[10px] opacity-50 uppercase tracking-widest font-bold">Black Market</p>
-                    <p class="text-[9px] text-yellow-400" id="market-timer">New Stock: 10:00</p>
+                    <p class="text-[9px] text-yellow-400" id="market-timer">Syncing...</p>
                 </div>
                 <div id="market-list" class="mb-6"></div>
                 <p class="text-[10px] mb-2 opacity-50 uppercase tracking-widest font-bold border-t border-white/10 pt-4">Inventory</p>
@@ -431,8 +431,11 @@
         let playerName = localStorage.getItem('neon67_playername') || "";
         let totalClicks = parseInt(localStorage.getItem('neon67_totalclicks')) || 0;
         let totalMoneyEarned = parseInt(localStorage.getItem('neon67_totalearned')) || 0;
-        let sessionStartTime = Date.now();
+        
+        // REPLACED: sessionStartTime logic removed.
+        // We now just track totalTimePlayed directly and increment it every second.
         let totalTimePlayed = parseInt(localStorage.getItem('neon67_totaltime')) || 0;
+        let lastTimeUpdate = Date.now();
 
         // --- 3. DATA & CONFIG ---
         const POTION_DB = {
@@ -489,7 +492,7 @@
 
         let balance = 0;
         let jackpots = 0;
-        let rollDelay = 1.5;
+        let rollDelay = 1.0;
         let delayPrice = 1000;
         let hasTriple = false;
         let isRolling = false;
@@ -498,23 +501,26 @@
         let currentTitle = { name: "NO TITLE", mult: 1.0, color: "#6b7280" };
         let pendingDoN = 0;
         
-        // Chips
+        // Chips (Global Timer Logic applied here)
         let ownedChips = [];
         let equippedChips = [null, null, null];
-        let marketNextReset = 0;
+        const MARKET_CYCLE = 600000; // 10 minutes
+        let lastProcessedMarketEpoch = 0;
         let marketStock = [];
         let firewallCounter = 50;
         let lossStreak = 0;
 
-        // Potions
-        let potionInventory = {}; // { 'luck_1': 2 }
-        let activePotions = {}; // { 'Luck': endTime }
+        // Potions (Global Timer Logic applied here)
+        let potionInventory = {}; 
+        let activePotions = {}; 
         let rollsUntilPotion = 0;
-        let potionShopTimer = 0;
+        const POTION_CYCLE = 300000; // 5 minutes
+        let lastProcessedPotionEpoch = 0;
         let potionShopStock = [];
 
-        // Glitch
-        let glitchNextCheck = 0;
+        // Glitch (Global Timer Logic applied here)
+        const GLITCH_CYCLE = 900000; // 15 minutes
+        let lastProcessedGlitchEpoch = 0;
         let currentGlitch = null;
         let glitchEndTime = 0;
 
@@ -561,15 +567,28 @@
         document.addEventListener('click', () => { if (!bgmInitialized) { bgm.play().catch(()=>{}); bgmInitialized = true; bgmBtn.textContent = "🔊 BGM: ON"; } }, { once: true });
         bgmBtn.onclick = (e) => { e.stopPropagation(); toggleBGM(); };
 
+        // --- NEW: GLOBAL TIMER HELPER ---
+        // Returns the Unix timestamp of the NEXT reset for a given interval
+        function getNextGlobalTarget(interval) {
+            return Math.ceil(Date.now() / interval) * interval;
+        }
+        // Returns the current Epoch ID (e.g., current 10 min block ID)
+        function getCurrentEpoch(interval) {
+            return Math.floor(Date.now() / interval);
+        }
+
         // --- SAVE/LOAD ---
         function saveGame() {
-            const currentSessionSeconds = Math.floor((Date.now() - sessionStartTime) / 1000);
+            // No more calculating session seconds here. just save totalTimePlayed.
             const data = { 
                 balance, jackpots, rollDelay, delayPrice, hasTriple, currentTitle, ownedSkins,
                 totalRolls, totalGacha, donStreak, unlockedAchievements,
-                ownedChips, equippedChips, marketNextReset, marketStock,
-                potionInventory, activePotions, rollsUntilPotion, potionShopTimer, potionShopStock, glitchNextCheck,
-                totalEarned: totalMoneyEarned, clicks: totalClicks, timeSpent: totalTimePlayed + currentSessionSeconds,
+                ownedChips, equippedChips, marketStock,
+                potionInventory, activePotions, rollsUntilPotion, potionShopStock,
+                totalEarned: totalMoneyEarned, clicks: totalClicks, 
+                timeSpent: totalTimePlayed,
+                // Save epoch states to know if we already refreshed this cycle locally
+                lastProcessedMarketEpoch, lastProcessedPotionEpoch, lastProcessedGlitchEpoch,
                 lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
             };
             localStorage.setItem('neon67_v3_save', JSON.stringify(data));
@@ -595,19 +614,26 @@
                     if(d.unlockedAchievements !== undefined) unlockedAchievements = d.unlockedAchievements;
                     if(d.ownedChips !== undefined) ownedChips = d.ownedChips;
                     if(d.equippedChips !== undefined) equippedChips = d.equippedChips;
-                    if(d.marketNextReset !== undefined) marketNextReset = d.marketNextReset;
-                    if(d.marketStock !== undefined) marketStock = d.marketStock;
-                    if(d.glitchNextCheck !== undefined) glitchNextCheck = d.glitchNextCheck;
                     
+                    // Timers / Stocks
+                    if(d.marketStock !== undefined) marketStock = d.marketStock;
+                    if(d.lastProcessedMarketEpoch !== undefined) lastProcessedMarketEpoch = d.lastProcessedMarketEpoch;
+                    if(d.lastProcessedPotionEpoch !== undefined) lastProcessedPotionEpoch = d.lastProcessedPotionEpoch;
+                    if(d.lastProcessedGlitchEpoch !== undefined) lastProcessedGlitchEpoch = d.lastProcessedGlitchEpoch;
+
                     if(d.potionInventory !== undefined) potionInventory = d.potionInventory;
                     if(d.activePotions !== undefined) activePotions = d.activePotions;
                     if(d.rollsUntilPotion !== undefined) rollsUntilPotion = d.rollsUntilPotion;
-                    if(d.potionShopTimer !== undefined) potionShopTimer = d.potionShopTimer;
                     if(d.potionShopStock !== undefined) potionShopStock = d.potionShopStock;
 
                     if(d.totalEarned !== undefined) totalMoneyEarned = d.totalEarned;
                     if(d.clicks !== undefined) totalClicks = d.clicks;
-                    if(d.timeSpent !== undefined) totalTimePlayed = d.timeSpent;
+                    
+                    // FIX: Ensure cloud time overwrites local time if larger
+                    if(d.timeSpent !== undefined) {
+                        totalTimePlayed = Math.max(totalTimePlayed, d.timeSpent);
+                    }
+                    
                     updateUI(); renderAchievements(); checkSpecialSkins(); renderDeck(); renderPotionMenu();
                 }
             } catch (e) { console.error("Cloud Load Error:", e); }
@@ -624,22 +650,32 @@
                 totalGacha = d.totalGacha || 0; donStreak = d.donStreak || 0;
                 unlockedAchievements = d.unlockedAchievements || [];
                 ownedChips = d.ownedChips || []; equippedChips = d.equippedChips || [null, null, null];
-                marketNextReset = d.marketNextReset || 0; marketStock = d.marketStock || [];
                 marketStock = d.marketStock || [];
-                glitchNextCheck = d.glitchNextCheck || (Date.now() + 900000);
                 
+                // Load Epochs
+                lastProcessedMarketEpoch = d.lastProcessedMarketEpoch || 0;
+                lastProcessedPotionEpoch = d.lastProcessedPotionEpoch || 0;
+                lastProcessedGlitchEpoch = d.lastProcessedGlitchEpoch || 0;
+
                 potionInventory = d.potionInventory || {};
                 activePotions = d.activePotions || {};
                 rollsUntilPotion = d.rollsUntilPotion || 0;
-                potionShopTimer = d.potionShopTimer || 0;
                 potionShopStock = d.potionShopStock || [];
+                
+                // Load Time
+                totalTimePlayed = d.timeSpent || 0;
+                totalMoneyEarned = d.totalEarned || 0;
+                totalClicks = d.clicks || 0;
 
                 updateUI(); renderAchievements(); checkSpecialSkins(); renderDeck(); renderPotionMenu();
-            } else {
-                marketNextReset = Date.now() + 600000;
-                glitchNextCheck = Date.now() + 900000;
-                refreshMarket(true);
             }
+            
+            // Initialization check for globals
+            const currentM = getCurrentEpoch(MARKET_CYCLE);
+            if (currentM > lastProcessedMarketEpoch) refreshMarket();
+
+            const currentP = getCurrentEpoch(POTION_CYCLE);
+            if (currentP > lastProcessedPotionEpoch) refreshPotionShop();
         }
         function hardReset() { localStorage.removeItem('neon67_v3_save'); location.reload(); }
 
@@ -780,25 +816,31 @@
             });
         }
 
+        // Global Potion Timer
         function checkPotionShopTimer() {
-            const now = Date.now();
-            if (now >= potionShopTimer) {
-                // Refresh Shop
-                potionShopTimer = now + 300000; // 5 mins
-                potionShopStock = [];
-                for(let i=0; i<3; i++) {
-                    const r = Math.random();
-                    // 60% T1, 35% T2, 5% T3
-                    const tier = r < 0.6 ? 1 : r < 0.95 ? 2 : 3;
-                    const type = ['luck', 'money', 'speed'][Math.floor(Math.random()*3)];
-                    potionShopStock.push(`${type}_${tier}`);
-                }
+            const currentEpoch = getCurrentEpoch(POTION_CYCLE);
+            if (currentEpoch > lastProcessedPotionEpoch) {
+                refreshPotionShop();
             }
-            const diff = potionShopTimer - now;
+            
+            // UI Update
+            const nextReset = getNextGlobalTarget(POTION_CYCLE);
+            const diff = nextReset - Date.now();
             const m = Math.floor(diff/60000);
             const s = Math.floor((diff%60000)/1000).toString().padStart(2,'0');
             document.getElementById('potion-shop-timer').textContent = `${m}:${s}`;
             renderPotionShop();
+        }
+        
+        function refreshPotionShop() {
+            lastProcessedPotionEpoch = getCurrentEpoch(POTION_CYCLE);
+            potionShopStock = [];
+            for(let i=0; i<3; i++) {
+                const r = Math.random();
+                const tier = r < 0.6 ? 1 : r < 0.95 ? 2 : 3;
+                const type = ['luck', 'money', 'speed'][Math.floor(Math.random()*3)];
+                potionShopStock.push(`${type}_${tier}`);
+            }
         }
 
         function renderPotionShop() {
@@ -991,10 +1033,6 @@
                 // Money Potion
                 const moneyMult = getActiveMultiplier('Money');
                 if (moneyMult > 0) {
-                     // Potion multiplies total received money.
-                     // The requirement says "multiplies money received from both bet and tap".
-                     // For betting, this implies the PROFIT is multiplied, or the whole return?
-                     // Usually "Money received" implies the win amount.
                      if (effectiveMult > 0) effectiveMult *= moneyMult;
                 }
 
@@ -1019,12 +1057,37 @@
         }
 
         // --- Standard Functions (Shop, Chips, Glitch, etc) ---
+        // Global Market Logic
         function checkMarketTimer() {
-            const now = Date.now(); if (now >= marketNextReset) { refreshMarket(); marketNextReset = now + 600000; }
-            const diff = marketNextReset - now; const m = Math.floor(diff/60000); const s = Math.floor((diff%60000)/1000).toString().padStart(2,'0');
-            document.getElementById('market-timer').textContent = `New Stock: ${m}:${s}`; document.getElementById('cycle-timer-bar').textContent = `${m}:${s}`;
+            const currentEpoch = getCurrentEpoch(MARKET_CYCLE);
+            if (currentEpoch > lastProcessedMarketEpoch) {
+                refreshMarket();
+            }
+
+            const nextReset = getNextGlobalTarget(MARKET_CYCLE);
+            const diff = nextReset - Date.now();
+            const m = Math.floor(diff/60000);
+            const s = Math.floor((diff%60000)/1000).toString().padStart(2,'0');
+            document.getElementById('market-timer').textContent = `New Stock: ${m}:${s}`; 
+            document.getElementById('cycle-timer-bar').textContent = `${m}:${s}`;
         }
-        function refreshMarket() { const available = CHIP_DB.filter(c => !ownedChips.includes(c.id)); if (available.length === 0) { marketStock = []; return; } const stock = []; for(let i=0; i<2; i++) { if (available.length > 0) { const idx = Math.floor(Math.random() * available.length); stock.push(available[idx].id); available.splice(idx, 1); } } marketStock = stock; renderDeck(); }
+        
+        function refreshMarket() {
+            lastProcessedMarketEpoch = getCurrentEpoch(MARKET_CYCLE); 
+            const available = CHIP_DB.filter(c => !ownedChips.includes(c.id)); 
+            if (available.length === 0) { marketStock = []; return; } 
+            const stock = []; 
+            for(let i=0; i<2; i++) { 
+                if (available.length > 0) { 
+                    const idx = Math.floor(Math.random() * available.length); 
+                    stock.push(available[idx].id); 
+                    available.splice(idx, 1); 
+                } 
+            } 
+            marketStock = stock; 
+            renderDeck(); 
+        }
+
         function buyChip(id) { const chip = CHIP_DB.find(c => c.id === id); if (balance >= chip.price && !ownedChips.includes(id)) { balance -= chip.price; ownedChips.push(id); if(ownedChips.length >= 5) checkAchievement('chip_collector'); marketStock = marketStock.filter(sid => sid !== id); playTone(1200, 'square', 0.1); updateUI(); renderDeck(); } }
         function equipChip(id) { const emptyIdx = equippedChips.indexOf(null); if (emptyIdx !== -1 && !equippedChips.includes(id)) { equippedChips[emptyIdx] = id; renderDeck(); playTone(600, 'sine', 0.1); } }
         function unequipChip(idx) { equippedChips[idx] = null; renderDeck(); playTone(400, 'sine', 0.1); }
@@ -1033,10 +1096,38 @@
             const marketList = document.getElementById('market-list'); marketList.innerHTML = ''; marketStock.forEach(id => { if (ownedChips.includes(id)) return; const c = CHIP_DB.find(x => x.id === id); const div = document.createElement('div'); div.className = "chip-item flex justify-between items-center"; div.innerHTML = `<div><p class="font-bold text-xs" style="color:${c.color}">${c.name}</p><p class="text-[8px] opacity-60">${c.desc}</p></div><button onclick="buyChip('${c.id}')" class="btn-action px-2 py-1 rounded text-[9px] w-16">$${c.price/1000}k</button>`; marketList.appendChild(div); }); if (marketStock.length === 0 && ownedChips.length < CHIP_DB.length) marketList.innerHTML = '<div class="text-[9px] opacity-50 text-center">SOLD OUT</div>';
             const invList = document.getElementById('chip-inventory'); invList.innerHTML = ''; ownedChips.forEach(id => { const c = CHIP_DB.find(x => x.id === id); const isEquipped = equippedChips.includes(id); const div = document.createElement('div'); div.className = `chip-item flex justify-between items-center ${isEquipped ? 'opacity-50' : ''}`; div.innerHTML = `<div><p class="font-bold text-xs" style="color:${c.color}">${c.name}</p></div><button onclick="equipChip('${c.id}')" ${isEquipped ? 'disabled' : ''} class="bg-white/10 border border-white/20 text-white px-2 py-1 rounded text-[9px] hover:bg-white/20">${isEquipped ? 'EQUIPPED' : 'EQUIP'}</button>`; invList.appendChild(div); });
         }
-        function checkGlitchLoop() { const now = Date.now(); if (!currentGlitch && now >= glitchNextCheck) { const g = GLITCH_DB[Math.floor(Math.random() * GLITCH_DB.length)]; 
-activateGlitch(g); } if (currentGlitch && now >= glitchEndTime) endGlitch(); if (currentGlitch) { const left = Math.ceil((glitchEndTime - now) / 1000); document.getElementById('event-timer-bar').textContent = `ACTIVE (${left}s)`; document.getElementById('event-timer-bar').className = "text-red-500 animate-pulse"; } else { const diff = glitchNextCheck - now; const m = Math.max(0, Math.floor(diff/60000)); const s = Math.max(0, Math.floor((diff%60000)/1000)).toString().padStart(2,'0'); document.getElementById('event-timer-bar').textContent = `${m}:${s}`; document.getElementById('event-timer-bar').className = "text-white"; } }
+        
+        // Global Glitch Logic
+        function checkGlitchLoop() { 
+            const currentEpoch = getCurrentEpoch(GLITCH_CYCLE);
+            const now = Date.now();
+            
+            // If we are in a new 5-minute block that we haven't processed for glitches yet
+            if (currentEpoch > lastProcessedGlitchEpoch) {
+                lastProcessedGlitchEpoch = currentEpoch;
+                const g = GLITCH_DB[Math.floor(Math.random() * GLITCH_DB.length)]; 
+        activateGlitch(g);
+                }
+           
+            if (currentGlitch && now >= glitchEndTime) endGlitch(); 
+            
+            if (currentGlitch) { 
+                const left = Math.ceil((glitchEndTime - now) / 1000); 
+                document.getElementById('event-timer-bar').textContent = `ACTIVE (${left}s)`; 
+                document.getElementById('event-timer-bar').className = "text-red-500 animate-pulse"; 
+            } else { 
+                // Show time until next 5m block
+                const nextReset = getNextGlobalTarget(GLITCH_CYCLE);
+                const diff = nextReset - now; 
+                const m = Math.max(0, Math.floor(diff/60000)); 
+                const s = Math.max(0, Math.floor((diff%60000)/1000)).toString().padStart(2,'0'); 
+                document.getElementById('event-timer-bar').textContent = `${m}:${s}`; 
+                document.getElementById('event-timer-bar').className = "text-white"; 
+            } 
+        }
+        
         function activateGlitch(g) { currentGlitch = g; glitchEndTime = Date.now() + (g.duration * 1000); const banner = document.getElementById('glitch-banner'); banner.textContent = `⚠️ WARNING: ${g.name} ACTIVE ⚠️`; banner.classList.remove('hidden'); if (g.id === 'blood_moon') document.body.classList.add('glitch-blood-moon'); if (g.id === 'matrix') document.body.classList.add('glitch-matrix'); if (g.id === 'system_failure') document.getElementById('system-failure-overlay').classList.remove('hidden'); playTone(50, 'sawtooth', 1.0); }
-        function endGlitch() { if(currentGlitch && currentGlitch.id === 'blood_moon') checkAchievement('survivor'); currentGlitch = null; glitchNextCheck = Date.now() + 900000; document.getElementById('glitch-banner').classList.add('hidden'); document.body.classList.remove('glitch-blood-moon', 'glitch-matrix'); document.getElementById('system-failure-overlay').classList.add('hidden'); document.getElementById('zero-g-container').classList.add('hidden'); document.getElementById('zero-g-container').innerHTML = ''; }
+        function endGlitch() { if(currentGlitch && currentGlitch.id === 'blood_moon') checkAchievement('survivor'); currentGlitch = null; document.getElementById('glitch-banner').classList.add('hidden'); document.body.classList.remove('glitch-blood-moon', 'glitch-matrix'); document.getElementById('system-failure-overlay').classList.add('hidden'); document.getElementById('zero-g-container').classList.add('hidden'); document.getElementById('zero-g-container').innerHTML = ''; }
         function checkSpecialSkins() { const grid = document.getElementById('skin-grid'); const specials = grid.querySelectorAll('.special-skin-btn'); specials.forEach(b => b.remove()); if(ownedSkins.includes('Joker')) { const btn = document.createElement('button'); btn.className = "special-skin-btn p-2 border border-green-500 rounded text-[9px] text-green-500 font-bold"; btn.textContent = "JOKER"; btn.onclick = () => buySkin('Joker', '#ff00ff', '#00ff00'); grid.appendChild(btn); } if(ownedSkins.includes('Rainbow')) { const btn = document.createElement('button'); btn.className = "special-skin-btn p-2 border border-white rounded text-[9px] font-bold"; btn.style.background = "linear-gradient(45deg, red, blue)"; btn.textContent = "RGB GOD"; btn.onclick = () => buySkin('Rainbow', '#ffffff', '#ffffff'); grid.appendChild(btn); } }
         function buySkin(name, p, s) { if (!ownedSkins.includes(name)) { if (balance >= 1000) { balance -= 1000; ownedSkins.push(name); } else return; } document.body.className = ''; if (currentGlitch && currentGlitch.id === 'blood_moon') document.body.classList.add('glitch-blood-moon'); if (currentGlitch && currentGlitch.id === 'matrix') document.body.classList.add('glitch-matrix'); if(name === 'Joker') document.body.classList.add('skin-joker'); else if(name === 'Rainbow') document.body.classList.add('skin-rainbow'); else { document.documentElement.style.setProperty('--primary', p); document.documentElement.style.setProperty('--secondary', s); document.documentElement.style.setProperty('--bg', '#050505'); } updateUI(); }
         function winGame() { if (balance >= 67676767) { const total = Math.floor((Date.now() - startTime)/1000); document.getElementById('time-taken').textContent = `Time: ${Math.floor(total/60)}m ${total%60}s`; document.getElementById('main-ui').classList.add('hidden'); document.getElementById('win-screen').classList.remove('hidden'); document.body.classList.add('rave-bg'); setInterval(() => playTone(Math.random()*400+100, 'sawtooth', 0.1), 100); } }
@@ -1051,13 +1142,39 @@ activateGlitch(g); } if (currentGlitch && now >= glitchEndTime) endGlitch(); if 
         function toggleAuthMode() { isRegistering = !isRegistering; document.getElementById('register-fields').classList.toggle('hidden'); document.getElementById('btn-login').classList.toggle('hidden'); document.getElementById('btn-register').classList.toggle('hidden'); document.getElementById('auth-toggle-text').textContent = isRegistering ? "ALREADY AN AGENT? LOGIN" : "NO ID? CREATE NEW IDENTITY"; document.getElementById('auth-title').textContent = isRegistering ? "INITIATE" : "IDENTIFY"; }
         async function handleLogin() { const email = document.getElementById('auth-email').value; const pass = document.getElementById('auth-pass').value; const err = document.getElementById('auth-error'); try { await auth.signInWithEmailAndPassword(email, pass); document.getElementById('auth-overlay').classList.add('hidden'); err.classList.add('hidden'); } catch (error) { console.error(error); err.textContent = "ERROR: " + error.message; err.classList.remove('hidden'); } }
         async function handleRegister() { const email = document.getElementById('auth-email').value; const pass = document.getElementById('auth-pass').value; const username = document.getElementById('reg-username').value; const err = document.getElementById('auth-error'); if(username.length < 2) { err.textContent = "INVALID USERNAME"; err.classList.remove('hidden'); return; } try { const cred = await auth.createUserWithEmailAndPassword(email, pass); playerName = username; localStorage.setItem('neon67_playername', playerName); await db.collection("leaderboard").doc(playerName).set({ name: playerName, uid: cred.user.uid, balance: 0, totalEarned: 0 }, { merge: true }); document.getElementById('auth-overlay').classList.add('hidden'); err.classList.add('hidden'); } catch (error) { console.error(error); err.textContent = "ERROR: " + error.message; err.classList.remove('hidden'); } }
-        async function handleLogout() { await auth.signOut(); location.reload(); }
+        async function handleLogout() {
+   
+    localStorage.removeItem('neon67_v3_save');
+    localStorage.removeItem('neon67_playername');
+    
+    localStorage.removeItem('neon67_totalclicks');
+    localStorage.removeItem('neon67_totalearned');
+    localStorage.removeItem('neon67_totaltime');
+
+    await auth.signOut();
+    location.reload(); 
+}
 
         const canvas = document.getElementById('bg-canvas'); const ctx = canvas.getContext('2d'); let pts = [];
         function init() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; pts = Array.from({length: 40}, () => ({ x: Math.random()*canvas.width, y: Math.random()*canvas.height, s: Math.random()*20+10, v: Math.random()*1+0.5 })); }
         function draw() { ctx.clearRect(0,0,canvas.width,canvas.height); ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--bg') || '#050505'; ctx.fillRect(0,0,canvas.width,canvas.height); const prim = getComputedStyle(document.body).getPropertyValue('--primary').trim(); pts.forEach(p => { p.y -= p.v; if(p.y < -30) p.y = canvas.height + 30; ctx.fillStyle = prim + "22"; ctx.font = `${p.s}px Orbitron`; ctx.fillText('67', p.x, p.y); }); requestAnimationFrame(draw); }
 
-        setInterval(() => { checkMarketTimer(); checkGlitchLoop(); if(document.getElementById('potion-view-shop').classList.contains('hidden') === false) checkPotionShopTimer(); updateActiveEffects(); }, 1000);
+        // --- TIME LOOP ---
+        setInterval(() => { 
+            // 1. Check Global Timers
+            checkMarketTimer(); 
+            checkGlitchLoop(); 
+            if(document.getElementById('potion-view-shop').classList.contains('hidden') === false) checkPotionShopTimer(); 
+            updateActiveEffects();
+
+            // 2. Increment Playtime Logic (Fixes Leaderboard Time)
+            const now = Date.now();
+            if (now - lastTimeUpdate >= 1000) {
+                totalTimePlayed += 1;
+                lastTimeUpdate = now;
+            }
+        }, 1000);
+
         setInterval(() => saveGame(), 30000);
         window.addEventListener('resize', init);
         window.onload = () => { loadGame(); init(); draw(); auth.onAuthStateChanged(user => { if (user) { document.getElementById('auth-overlay').classList.add('hidden'); if (!playerName) { db.collection('leaderboard').where('uid', '==', user.uid).get().then(snap => { if(!snap.empty) { playerName = snap.docs[0].data().name; localStorage.setItem('neon67_playername', playerName); loadFromCloud(); } else { document.getElementById('name-prompt-overlay').classList.remove('hidden'); } }); } else { loadFromCloud(); } } else { document.getElementById('auth-overlay').classList.remove('hidden'); } }); };
